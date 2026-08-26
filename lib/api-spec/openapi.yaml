@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: rounds
+    description: Golf round and side bet operations
+  - name: dashboard
+    description: Round summaries
 paths:
   /healthz:
     get:
@@ -24,7 +28,150 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /rounds:
+    get:
+      operationId: listRounds
+      tags: [rounds]
+      summary: List golf rounds
+      responses:
+        "200":
+          description: Golf rounds
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Round"
+    post:
+      operationId: createRound
+      tags: [rounds]
+      summary: Create a golf round
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoundInput"
+      responses:
+        "201":
+          description: Created round
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoundDetail"
+  /rounds/{roundId}:
+    get:
+      operationId: getRound
+      tags: [rounds]
+      summary: Get a golf round
+      parameters:
+        - $ref: "#/components/parameters/RoundId"
+      responses:
+        "200":
+          description: Round detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoundDetail"
+        "404":
+          description: Round not found
+    patch:
+      operationId: updateRound
+      tags: [rounds]
+      summary: Update a golf round
+      parameters:
+        - $ref: "#/components/parameters/RoundId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoundUpdate"
+      responses:
+        "200":
+          description: Updated round
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoundDetail"
+    delete:
+      operationId: deleteRound
+      tags: [rounds]
+      summary: Delete a golf round
+      parameters:
+        - $ref: "#/components/parameters/RoundId"
+      responses:
+        "204":
+          description: Round deleted
+  /rounds/{roundId}/holes:
+    post:
+      operationId: recordHole
+      tags: [rounds]
+      summary: Record a hole result
+      parameters:
+        - $ref: "#/components/parameters/RoundId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HoleResultInput"
+      responses:
+        "201":
+          description: Recorded hole
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HoleResult"
+    get:
+      operationId: listHoleResults
+      tags: [rounds]
+      summary: List recorded hole results
+      parameters:
+        - $ref: "#/components/parameters/RoundId"
+      responses:
+        "200":
+          description: Hole results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HoleResult"
+  /rounds/{roundId}/settlement:
+    get:
+      operationId: getRoundSettlement
+      tags: [rounds]
+      summary: Get the current round settlement
+      parameters:
+        - $ref: "#/components/parameters/RoundId"
+      responses:
+        "200":
+          description: Current balances
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settlement"
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get a summary of tracked rounds
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
 components:
+  parameters:
+    RoundId:
+      name: roundId
+      in: path
+      required: true
+      schema:
+        type: number
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +180,172 @@ components:
           type: string
       required:
         - status
+    Player:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        initials:
+          type: string
+      required: [id, name, initials]
+    PlayerInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+      required: [name]
+    Round:
+      type: object
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+        course:
+          type: string
+        playedAt:
+          type: string
+        status:
+          type: string
+          enum: [in_progress, completed]
+        gameTypes:
+          type: array
+          items:
+            type: string
+            enum: [wolf, nassau]
+        stake:
+          type: number
+        currentHole:
+          type: number
+        players:
+          type: array
+          items:
+            $ref: "#/components/schemas/Player"
+      required: [id, name, course, playedAt, status, gameTypes, stake, currentHole, players]
+    RoundInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        course:
+          type: string
+          minLength: 1
+        playedAt:
+          type: string
+        gameTypes:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            enum: [wolf, nassau]
+        stake:
+          type: number
+          minimum: 0.01
+        players:
+          type: array
+          minItems: 2
+          maxItems: 4
+          items:
+            $ref: "#/components/schemas/PlayerInput"
+      required: [name, course, playedAt, gameTypes, stake, players]
+    RoundUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        course:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum: [in_progress, completed]
+    ScoreInput:
+      type: object
+      properties:
+        playerId:
+          type: string
+        strokes:
+          type: number
+          minimum: 1
+      required: [playerId, strokes]
+    HoleResultInput:
+      type: object
+      properties:
+        hole:
+          type: number
+          minimum: 1
+          maximum: 18
+        scores:
+          type: array
+          minItems: 2
+          items:
+            $ref: "#/components/schemas/ScoreInput"
+        wolfPlayerId:
+          type: ["string", "null"]
+        winnerPlayerId:
+          type: ["string", "null"]
+      required: [hole, scores]
+    HoleResult:
+      allOf:
+        - $ref: "#/components/schemas/HoleResultInput"
+        - type: object
+          properties:
+            id:
+              type: number
+            createdAt:
+              type: string
+          required: [id, createdAt]
+    RoundDetail:
+      allOf:
+        - $ref: "#/components/schemas/Round"
+        - type: object
+          properties:
+            holes:
+              type: array
+              items:
+                $ref: "#/components/schemas/HoleResult"
+            settlement:
+              $ref: "#/components/schemas/Settlement"
+          required: [holes, settlement]
+    Balance:
+      type: object
+      properties:
+        playerId:
+          type: string
+        playerName:
+          type: string
+        amount:
+          type: number
+      required: [playerId, playerName, amount]
+    Settlement:
+      type: object
+      properties:
+        balances:
+          type: array
+          items:
+            $ref: "#/components/schemas/Balance"
+        holesRecorded:
+          type: number
+        totalPot:
+          type: number
+      required: [balances, holesRecorded, totalPot]
+    DashboardSummary:
+      type: object
+      properties:
+        totalRounds:
+          type: number
+        activeRounds:
+          type: number
+        totalHolesRecorded:
+          type: number
+        latestRound:
+          anyOf:
+            - $ref: "#/components/schemas/Round"
+            - type: "null"
+      required: [totalRounds, activeRounds, totalHolesRecorded, latestRound]
 

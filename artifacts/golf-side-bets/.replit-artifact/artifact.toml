@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Golf Side Bets"
+description = "A friendly round tracker for golf groups to set up Wolf and Nassau side bets, record hole-by-hole results, and see exactly who owes what."
+version = "1.0.0"
+id = "artifacts/golf-side-bets"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 26053
+
+[services.development]
+run = "pnpm --filter @workspace/golf-side-bets run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/golf-side-bets", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/golf-side-bets/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26053"
+BASE_PATH = "/"

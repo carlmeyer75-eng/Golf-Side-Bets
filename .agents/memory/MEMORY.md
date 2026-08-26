@@ -1,0 +1,1 @@
+- [API schema and Zod compatibility](api-schema-zod-compatibility.md) — generated integer schemas require a Zod runtime upgrade; use numeric fields until then.

@@ -1,6 +1,6 @@
-# [Project name]
+# Golf Side Bets
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Golf Side Bets helps golf groups track Wolf and Nassau wagers hole by hole and settle the round without manual math.
 
 ## Run & Operate
 
@@ -22,23 +22,33 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/golf-side-bets/src/App.tsx` — dashboard, round setup, scorecard, and settlement UI
+- `artifacts/golf-side-bets/src/index.css` — shared clubhouse visual theme and responsive styles
+- `artifacts/api-server/src/routes/rounds.ts` — round, hole, dashboard, and settlement API handlers
+- `lib/api-spec/openapi.yaml` — API contract source of truth
+- `lib/db/src/schema/rounds.ts` — PostgreSQL schema for rounds and hole results
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Round players and game types are stored as JSONB so the first version can support both Wolf and Nassau without over-modeling rules.
+- Settlement is calculated server-side from recorded hole winners, stake, and selected games; clients only render the returned balances.
+- The app uses the shared API server and generated React Query hooks so saved rounds survive reloads and navigation.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Dashboard with round history, active-round progress, and holes recorded
+- New round setup for course, date, stake, game types, and 2–4 players
+- Live hole-by-hole scorecard with Wolf/winner selection
+- Running settlement balances, total pot, round completion, reopening, editing, and deletion
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+No additional preferences recorded.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Regenerate the API client after every OpenAPI change with `pnpm --filter @workspace/api-spec run codegen`.
+- The app expects the managed artifact workflow to provide `PORT` and `BASE_PATH`; do not run the Vite command directly for preview routing.
 
 ## Pointers
 
