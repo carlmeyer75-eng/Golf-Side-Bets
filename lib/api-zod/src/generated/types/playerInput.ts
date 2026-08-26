@@ -9,4 +9,15 @@
 export interface PlayerInput {
   /** @minLength 1 */
   name: string;
+  /**
+     * @minimum 0
+     * @maximum 54
+     */
+  handicap?: number;
+  /**
+     * @minimum 2
+     * @maximum 6
+     * @nullable
+     */
+  snakeThreshold?: number | null;
 }

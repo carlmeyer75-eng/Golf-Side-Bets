@@ -5,8 +5,9 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { DotPoints } from './dotPoints';
+import type { GameType } from './gameType';
 import type { Player } from './player';
-import type { RoundGameTypesItem } from './roundGameTypesItem';
 import type { RoundStatus } from './roundStatus';
 
 export interface Round {
@@ -15,8 +16,14 @@ export interface Round {
   course: string;
   playedAt: string;
   status: RoundStatus;
-  gameTypes: RoundGameTypesItem[];
+  gameTypes: GameType[];
   stake: number;
+  dollarPerPoint: number;
+  wolfUnit: number;
+  snakeStake: number;
+  dotPoints: DotPoints;
+  holePars: number[];
+  holeStrokeIndex: number[];
   currentHole: number;
   players: Player[];
 }

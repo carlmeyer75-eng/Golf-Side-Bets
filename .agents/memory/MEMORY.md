@@ -1,1 +1,2 @@
 - [API schema and Zod compatibility](api-schema-zod-compatibility.md) — generated integer schemas require a Zod runtime upgrade; use numeric fields until then.
+- [Drizzle push rename-conflict prompt](drizzle-push-rename-conflict.md) — non-TTY shells can't answer drizzle-kit's rename-vs-create prompt; drop+recreate disposable tables via psql instead.

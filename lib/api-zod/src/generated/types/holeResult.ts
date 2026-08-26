@@ -6,8 +6,19 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { HoleResultInput } from './holeResultInput';
+import type { HoleResultWolfResult } from './holeResultWolfResult';
+import type { PlayerDots } from './playerDots';
 
-export type HoleResult = HoleResultInput & {
+export type HoleResult = HoleResultInput & ({
   id: number;
   createdAt: string;
-};
+  /** @nullable */
+  effectiveWolfPlayerId: string | null;
+  wolfTeamPlayerIds: string[];
+  /** @nullable */
+  wolfResult: HoleResultWolfResult;
+  wolfCarry: number;
+  /** @nullable */
+  snakeHolderPlayerId: string | null;
+  dotsEarned: PlayerDots[];
+});

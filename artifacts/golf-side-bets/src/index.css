@@ -222,6 +222,37 @@ button { cursor: pointer; }
 .spin { animation:spin .8s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg); } }
 .mobile-only { display:none; }
+.game-chip-row { display:flex; gap:5px; flex-wrap:wrap; margin-top:6px; }
+.game-chip { font:700 9px var(--app-font-mono); text-transform:uppercase; letter-spacing:.06em; padding:3px 7px; border-radius:99px; background:hsl(var(--secondary)); color:hsl(var(--muted-foreground)); }
+.player-input .field-hcp { width:72px; flex:0 0 72px; border:1px solid hsl(var(--input)); background:hsl(var(--card)); border-radius:8px; padding:11px 8px; text-align:center; font:700 13px var(--app-font-mono); }
+.player-input-hcp-label { font-size:9px; text-transform:uppercase; letter-spacing:.08em; color:hsl(var(--muted-foreground)); text-align:center; }
+.sub-tabs { display:flex; gap:4px; padding:0 24px; margin-top:-2px; border-bottom:1px solid hsl(var(--border)); flex-wrap:wrap; }
+.sub-tab { padding:11px 14px; font-size:12px; font-weight:700; color:hsl(var(--muted-foreground)); border-bottom:2px solid transparent; background:transparent; }
+.sub-tab:hover { color:hsl(var(--foreground)); }
+.sub-tab.active { color:hsl(var(--primary)); border-bottom-color:hsl(var(--accent)); }
+.score-player-putt { width:100%; border:0; background:hsl(var(--secondary)/.6); padding:9px; border-radius:7px; font:700 13px var(--app-font-mono); color:hsl(var(--foreground)); outline:none; margin-top:6px; }
+.score-player-putt-label { font-size:9px; text-transform:uppercase; letter-spacing:.08em; color:hsl(var(--muted-foreground)); margin-top:8px; display:block; }
+.wolf-panel, .snake-panel { display:flex; flex-direction:column; gap:16px; }
+.wolf-summary { background:hsl(var(--secondary)/.6); border-radius:10px; padding:13px 15px; font-size:13px; font-weight:700; }
+.wolf-summary strong { color:hsl(var(--primary)); }
+.wolf-result-readout { font-size:12px; font-weight:700; padding:11px 13px; border-radius:9px; background:hsl(var(--accent)/.15); color:hsl(var(--foreground)); }
+.check-label.small { padding:8px 10px; font-size:12px; }
+.snake-holder { background:hsl(var(--secondary)/.6); border-radius:10px; padding:13px 15px; font-size:13px; font-weight:700; }
+.dot-grid { display:flex; flex-direction:column; gap:9px; }
+.dot-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:11px 13px; border:1px solid hsl(var(--border)); border-radius:10px; }
+.dot-row-name { font-weight:700; font-size:13px; flex:0 0 100px; }
+.dot-auto-badges { display:flex; gap:5px; margin-left:auto; }
+.badge-chip { font:700 9px var(--app-font-mono); text-transform:uppercase; letter-spacing:.05em; padding:4px 8px; border-radius:99px; background:hsl(161 42% 32% / .16); color:hsl(161 42% 26%); }
+.badge-chip.warn { background:hsl(var(--destructive)/.14); color:hsl(var(--destructive)); }
+.ledger-tabs { display:flex; gap:4px; margin-bottom:14px; }
+.ledger-section-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.09em; color:hsl(var(--muted-foreground)); margin:18px 0 8px; }
+.points-table { width:100%; border-collapse:collapse; font-size:11px; }
+.points-table th { text-align:right; font-weight:700; color:hsl(var(--muted-foreground)); padding:5px 4px; font-size:10px; text-transform:uppercase; letter-spacing:.04em; }
+.points-table th:first-child, .points-table td:first-child { text-align:left; }
+.points-table td { text-align:right; padding:7px 4px; font-family:var(--app-font-mono); border-top:1px solid hsl(var(--border)); }
+.payout-row { display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid hsl(var(--border)); font-size:12px; }
+.payout-row:last-child { border-bottom:0; }
+.payout-row strong { font-family:var(--app-font-mono); margin-left:auto; }
 @media (max-width: 900px) {
   .sidebar { width:210px; flex-basis:210px; }
   .content-wrap { padding:34px 25px 60px; }

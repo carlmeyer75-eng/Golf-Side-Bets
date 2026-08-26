@@ -13,12 +13,51 @@ export interface Player {
   id: string;
   name: string;
   initials: string;
+  handicap: number;
+  /** @nullable */
+  snakeThreshold: number | null;
 }
 
 export interface PlayerInput {
   /** @minLength 1 */
   name: string;
+  /**
+     * @minimum 0
+     * @maximum 54
+     */
+  handicap?: number;
+  /**
+     * @minimum 2
+     * @maximum 6
+     * @nullable
+     */
+  snakeThreshold?: number | null;
 }
+
+export interface DotPoints {
+  /** @minimum 0 */
+  greenie: number;
+  /** @minimum 0 */
+  sandy: number;
+  /** @minimum 0 */
+  birdie: number;
+  /** @minimum 0 */
+  eagle: number;
+  /** @minimum 0 */
+  poley: number;
+  /** @minimum 0 */
+  threeputt: number;
+}
+
+export type GameType = typeof GameType[keyof typeof GameType];
+
+
+export const GameType = {
+  wolf: 'wolf',
+  nassau: 'nassau',
+  snake: 'snake',
+  dots: 'dots',
+} as const;
 
 export type RoundStatus = typeof RoundStatus[keyof typeof RoundStatus];
 
@@ -28,33 +67,23 @@ export const RoundStatus = {
   completed: 'completed',
 } as const;
 
-export type RoundGameTypesItem = typeof RoundGameTypesItem[keyof typeof RoundGameTypesItem];
-
-
-export const RoundGameTypesItem = {
-  wolf: 'wolf',
-  nassau: 'nassau',
-} as const;
-
 export interface Round {
   id: number;
   name: string;
   course: string;
   playedAt: string;
   status: RoundStatus;
-  gameTypes: RoundGameTypesItem[];
+  gameTypes: GameType[];
   stake: number;
+  dollarPerPoint: number;
+  wolfUnit: number;
+  snakeStake: number;
+  dotPoints: DotPoints;
+  holePars: number[];
+  holeStrokeIndex: number[];
   currentHole: number;
   players: Player[];
 }
-
-export type RoundInputGameTypesItem = typeof RoundInputGameTypesItem[keyof typeof RoundInputGameTypesItem];
-
-
-export const RoundInputGameTypesItem = {
-  wolf: 'wolf',
-  nassau: 'nassau',
-} as const;
 
 export interface RoundInput {
   /** @minLength 1 */
@@ -63,12 +92,33 @@ export interface RoundInput {
   course: string;
   playedAt: string;
   /** @minItems 1 */
-  gameTypes: RoundInputGameTypesItem[];
+  gameTypes: GameType[];
   /** @minimum 0.01 */
   stake: number;
+  /** @minimum 0 */
+  dollarPerPoint?: number;
+  /** @minimum 0.01 */
+  wolfUnit?: number;
+  /** @minimum 0 */
+  snakeStake?: number;
+  dotPoints?: DotPoints;
+  /**
+     * @minItems 18
+     * @maxItems 18
+     * @items.minimum 3
+     * @items.maximum 6
+     */
+  holePars?: number[];
+  /**
+     * @minItems 18
+     * @maxItems 18
+     * @items.minimum 1
+     * @items.maximum 18
+     */
+  holeStrokeIndex?: number[];
   /**
      * @minItems 2
-     * @maxItems 4
+     * @maxItems 6
      */
   players: PlayerInput[];
 }
@@ -87,6 +137,27 @@ export interface RoundUpdate {
   /** @minLength 1 */
   course?: string;
   status?: RoundUpdateStatus;
+  /** @minimum 0 */
+  dollarPerPoint?: number;
+  /** @minimum 0.01 */
+  wolfUnit?: number;
+  /** @minimum 0 */
+  snakeStake?: number;
+  dotPoints?: DotPoints;
+  /**
+     * @minItems 18
+     * @maxItems 18
+     * @items.minimum 3
+     * @items.maximum 6
+     */
+  holePars?: number[];
+  /**
+     * @minItems 18
+     * @maxItems 18
+     * @items.minimum 1
+     * @items.maximum 18
+     */
+  holeStrokeIndex?: number[];
 }
 
 export interface ScoreInput {
@@ -94,6 +165,31 @@ export interface ScoreInput {
   /** @minimum 1 */
   strokes: number;
 }
+
+export interface PuttInput {
+  playerId: string;
+  /** @minimum 0 */
+  putts: number;
+}
+
+export interface DotFlagsInput {
+  playerId: string;
+  greenie?: boolean;
+  sandy?: boolean;
+  poley?: boolean;
+}
+
+/**
+ * @nullable
+ */
+export type HoleResultInputWolfManualResult = typeof HoleResultInputWolfManualResult[keyof typeof HoleResultInputWolfManualResult] | null;
+
+
+export const HoleResultInputWolfManualResult = {
+  wolfwin: 'wolfwin',
+  oppwin: 'oppwin',
+  push: 'push',
+} as const;
 
 export interface HoleResultInput {
   /**
@@ -103,16 +199,52 @@ export interface HoleResultInput {
   hole: number;
   /** @minItems 2 */
   scores: ScoreInput[];
+  putts?: PuttInput[];
+  wolfPartnerIds?: string[];
   /** @nullable */
-  wolfPlayerId?: string | null;
+  wolfOverridePlayerId?: string | null;
+  /** @nullable */
+  wolfManualResult?: HoleResultInputWolfManualResult;
+  dots?: DotFlagsInput[];
   /** @nullable */
   winnerPlayerId?: string | null;
 }
 
-export type HoleResult = HoleResultInput & {
+export interface PlayerDots {
+  playerId: string;
+  greenie: boolean;
+  sandy: boolean;
+  poley: boolean;
+  birdie: boolean;
+  eagle: boolean;
+  threeputt: boolean;
+}
+
+/**
+ * @nullable
+ */
+export type HoleResultWolfResult = typeof HoleResultWolfResult[keyof typeof HoleResultWolfResult] | null;
+
+
+export const HoleResultWolfResult = {
+  wolfwin: 'wolfwin',
+  oppwin: 'oppwin',
+  push: 'push',
+} as const;
+
+export type HoleResult = HoleResultInput & ({
   id: number;
   createdAt: string;
-};
+  /** @nullable */
+  effectiveWolfPlayerId: string | null;
+  wolfTeamPlayerIds: string[];
+  /** @nullable */
+  wolfResult: HoleResultWolfResult;
+  wolfCarry: number;
+  /** @nullable */
+  snakeHolderPlayerId: string | null;
+  dotsEarned: PlayerDots[];
+});
 
 export interface Balance {
   playerId: string;
@@ -120,8 +252,29 @@ export interface Balance {
   amount: number;
 }
 
+export interface Payout {
+  fromPlayerId: string;
+  fromPlayerName: string;
+  toPlayerId: string;
+  toPlayerName: string;
+  amount: number;
+}
+
+export interface PlayerPoints {
+  playerId: string;
+  playerName: string;
+  wolfPoints: number;
+  dotsPoints: number;
+  snakePoints: number;
+  nassauAmount: number;
+}
+
 export interface Settlement {
   balances: Balance[];
+  payouts: Payout[];
+  pointTotals: PlayerPoints[];
+  /** @nullable */
+  snakeHolderPlayerId: string | null;
   holesRecorded: number;
   totalPot: number;
 }

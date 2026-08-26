@@ -3,7 +3,6 @@ import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/reac
 import {
   ArrowLeft,
   ArrowRight,
-  CalendarDays,
   Check,
   ChevronRight,
   CircleDollarSign,
@@ -35,6 +34,9 @@ import {
   useUpdateRound,
 } from '@workspace/api-client-react';
 import type {
+  GameType,
+  HoleResult,
+  HoleResultWolfResult,
   Player,
   Round,
   RoundDetail,
@@ -48,6 +50,13 @@ import { Link, Route, Switch, Router as WouterRouter, useLocation, useParams } f
 
 const queryClient = new QueryClient();
 
+const ALL_GAME_TYPES: { value: GameType; label: string; blurb: string }[] = [
+  { value: 'wolf', label: 'Wolf', blurb: 'Rotating captain picks a partner or goes it alone' },
+  { value: 'snake', label: 'Snake', blurb: 'Whoever 3-putts holds it until someone worse comes along' },
+  { value: 'dots', label: 'Dots', blurb: 'Greenies, sandies, birdies and more, worth points' },
+  { value: 'nassau', label: 'Nassau', blurb: 'Simple hole-by-hole winner takes the stake' },
+];
+
 const formatDate = (value?: string) =>
   value
     ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(
@@ -56,6 +65,7 @@ const formatDate = (value?: string) =>
     : 'Date not set';
 
 const formatMoney = (value: number) => `${value < 0 ? '−' : ''}$${Math.abs(value).toFixed(2)}`;
+const formatPoints = (value: number) => (Number.isInteger(value) ? String(value) : value.toFixed(1));
 
 const getInitials = (name: string) =>
   name
@@ -64,6 +74,8 @@ const getInitials = (name: string) =>
     .join('')
     .slice(0, 2)
     .toUpperCase();
+
+const gameLabel = (game: GameType) => ALL_GAME_TYPES.find((item) => item.value === game)?.label ?? game;
 
 function Brand() {
   return (
@@ -266,7 +278,7 @@ function Dashboard() {
               <div className="empty-mark"><Flag size={25} /></div>
               <div className="display">No round on the books.</div>
               <p className="body-copy" style={{ maxWidth: 350, margin: '0 auto 18px' }}>
-                Grab your group, pick a stake, and let the scorecard handle the side bets.
+                Grab your group, pick your games, and let the scorecard handle the side bets.
               </p>
               <Link href="/rounds/new" className="button button-primary" data-testid="button-create-empty-round">
                 <Plus size={15} /> Set up a round
@@ -301,6 +313,9 @@ function RoundRow({ round }: { round: Round }) {
       <div>
         <div className="round-name">{round.name}</div>
         <div className="round-course">{round.course} · {round.players.length} players</div>
+        <div className="game-chip-row">
+          {round.gameTypes.map((game) => <span className="game-chip" key={game}>{gameLabel(game)}</span>)}
+        </div>
       </div>
       <div className="round-date">{formatDate(round.playedAt)}</div>
       <div className="round-stake">{formatMoney(round.stake)} / bet</div>
@@ -310,6 +325,8 @@ function RoundRow({ round }: { round: Round }) {
   );
 }
 
+type DraftPlayer = { name: string; handicap: string };
+
 function NewRound() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -317,28 +334,31 @@ function NewRound() {
   const [name, setName] = useState('Saturday skins');
   const [course, setCourse] = useState('');
   const [playedAt, setPlayedAt] = useState(new Date().toISOString().slice(0, 10));
-  const [stake, setStake] = useState('5');
-  const [gameTypes, setGameTypes] = useState<('wolf' | 'nassau')[]>(['wolf', 'nassau']);
-  const [players, setPlayers] = useState(['', '']);
+  const [stake, setStake] = useState('1');
+  const [gameTypes, setGameTypes] = useState<GameType[]>(['wolf', 'snake', 'dots']);
+  const [players, setPlayers] = useState<DraftPlayer[]>([
+    { name: '', handicap: '' },
+    { name: '', handicap: '' },
+  ]);
   const [formError, setFormError] = useState('');
 
-  const changePlayer = (index: number, value: string) => {
-    setPlayers((current) => current.map((player, playerIndex) => (playerIndex === index ? value : player)));
+  const changePlayer = (index: number, field: keyof DraftPlayer, value: string) => {
+    setPlayers((current) => current.map((player, playerIndex) => (playerIndex === index ? { ...player, [field]: value } : player)));
   };
   const addPlayer = () => {
-    if (players.length < 4) setPlayers((current) => [...current, '']);
+    if (players.length < 6) setPlayers((current) => [...current, { name: '', handicap: '' }]);
   };
   const removePlayer = (index: number) => {
     if (players.length > 2) setPlayers((current) => current.filter((_, playerIndex) => playerIndex !== index));
   };
-  const toggleGame = (game: 'wolf' | 'nassau') => {
+  const toggleGame = (game: GameType) => {
     setGameTypes((current) =>
       current.includes(game) ? current.filter((item) => item !== game) : [...current, game],
     );
   };
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    const cleanPlayers = players.map((player) => player.trim()).filter(Boolean);
+    const cleanPlayers = players.filter((player) => player.name.trim());
     if (!name.trim() || !course.trim() || cleanPlayers.length < 2 || gameTypes.length === 0 || Number(stake) <= 0) {
       setFormError('Add a course, two or more players, a game, and a stake to tee off.');
       return;
@@ -352,7 +372,11 @@ function NewRound() {
           playedAt,
           gameTypes,
           stake: Number(stake),
-          players: cleanPlayers.map((player) => ({ name: player })),
+          dollarPerPoint: Number(stake),
+          players: cleanPlayers.map((player) => ({
+            name: player.name.trim(),
+            handicap: player.handicap.trim() ? Number(player.handicap) : 0,
+          })),
         },
       },
       {
@@ -394,34 +418,49 @@ function NewRound() {
           <div className="field full">
             <label>Games in play</label>
             <div className="game-toggle">
-              {(['wolf', 'nassau'] as const).map((game) => (
-                <label className="check-label" key={game} htmlFor={`game-${game}`}>
-                  <input id={`game-${game}`} type="checkbox" checked={gameTypes.includes(game)} onChange={() => toggleGame(game)} data-testid={`checkbox-game-${game}`} />
-                  {game === 'wolf' ? 'Wolf' : 'Nassau'}
+              {ALL_GAME_TYPES.map((game) => (
+                <label className="check-label" key={game.value} htmlFor={`game-${game.value}`} title={game.blurb}>
+                  <input id={`game-${game.value}`} type="checkbox" checked={gameTypes.includes(game.value)} onChange={() => toggleGame(game.value)} data-testid={`checkbox-game-${game.value}`} />
+                  {game.label}
                 </label>
               ))}
             </div>
-            <span className="field-hint">You can run one game or keep both books open.</span>
+            <span className="field-hint">Mix and match — run any combination at once.</span>
           </div>
           <div className="field">
-            <label htmlFor="stake">Stake per bet</label>
+            <label htmlFor="stake">Stake per point / bet ($)</label>
             <input id="stake" type="number" min="0.01" step="0.01" value={stake} onChange={(event) => setStake(event.target.value)} data-testid="input-stake" />
+            <span className="field-hint">Used for Nassau's per-hole bet and the $ value of every Wolf/Snake/Dots point.</span>
           </div>
           <div className="field">
-            <label>Players <span style={{ color: 'hsl(var(--muted-foreground))', fontWeight: 400 }}>(2–4)</span></label>
-            <span className="field-hint">First names are perfect.</span>
+            <label>Players <span style={{ color: 'hsl(var(--muted-foreground))', fontWeight: 400 }}>(2–6)</span></label>
+            <span className="field-hint">Add a handicap for accurate net Wolf scoring — 0 if you don't know it.</span>
           </div>
           <div className="field full">
             <div className="players-list">
               {players.map((player, index) => (
                 <div className="player-input" key={`player-${index}`}>
-                  <span className="avatar" style={{ marginLeft: 0, flex: '0 0 33px' }}>{getInitials(player || `Player ${index + 1}`)}</span>
-                  <input value={player} onChange={(event) => changePlayer(index, event.target.value)} placeholder={`Player ${index + 1}`} aria-label={`Player ${index + 1} name`} data-testid={`input-player-${index + 1}`} />
+                  <span className="avatar" style={{ marginLeft: 0, flex: '0 0 33px' }}>{getInitials(player.name || `Player ${index + 1}`)}</span>
+                  <input value={player.name} onChange={(event) => changePlayer(index, 'name', event.target.value)} placeholder={`Player ${index + 1}`} aria-label={`Player ${index + 1} name`} data-testid={`input-player-${index + 1}`} />
+                  <div>
+                    <input
+                      className="field-hcp"
+                      type="number"
+                      min="0"
+                      max="54"
+                      value={player.handicap}
+                      onChange={(event) => changePlayer(index, 'handicap', event.target.value)}
+                      placeholder="Hcp"
+                      aria-label={`Player ${index + 1} handicap`}
+                      data-testid={`input-player-handicap-${index + 1}`}
+                    />
+                    <div className="player-input-hcp-label">Hcp</div>
+                  </div>
                   {players.length > 2 ? <button type="button" className="button button-ghost" onClick={() => removePlayer(index)} aria-label={`Remove player ${index + 1}`} data-testid={`button-remove-player-${index + 1}`}><X size={15} /></button> : null}
                 </div>
               ))}
             </div>
-            {players.length < 4 ? <button type="button" className="button button-ghost" onClick={addPlayer} style={{ marginTop: 10 }} data-testid="button-add-player"><Plus size={14} /> Add player</button> : null}
+            {players.length < 6 ? <button type="button" className="button button-ghost" onClick={addPlayer} style={{ marginTop: 10 }} data-testid="button-add-player"><Plus size={14} /> Add player</button> : null}
           </div>
         </div>
         {formError ? <div className="error-state" style={{ marginTop: 20, padding: 13, textAlign: 'left', fontSize: 13 }} data-testid="text-form-error">{formError}</div> : null}
@@ -436,6 +475,9 @@ function NewRound() {
     </main>
   );
 }
+
+type SubTab = 'score' | 'wolf' | 'snake' | 'dots';
+type DotState = { greenie: boolean; sandy: boolean; poley: boolean };
 
 function Scorecard() {
   const params = useParams<{ id?: string }>();
@@ -453,27 +495,61 @@ function Scorecard() {
   const holes = holesQuery.data ?? round?.holes ?? [];
   const settlement = settlementQuery.data ?? round?.settlement;
   const [selectedHole, setSelectedHole] = useState(1);
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>('score');
   const [scores, setScores] = useState<Record<string, string>>({});
-  const [wolfPlayerId, setWolfPlayerId] = useState('');
+  const [putts, setPutts] = useState<Record<string, string>>({});
+  const [wolfPartnerIds, setWolfPartnerIds] = useState<string[]>([]);
+  const [wolfOverridePlayerId, setWolfOverridePlayerId] = useState('');
+  const [wolfManualResult, setWolfManualResult] = useState<'' | 'wolfwin' | 'oppwin' | 'push'>('');
+  const [dotFlags, setDotFlags] = useState<Record<string, DotState>>({});
   const [winnerPlayerId, setWinnerPlayerId] = useState('');
   const [editing, setEditing] = useState(false);
   const [notice, setNotice] = useState('');
   const isBusy = recordHole.isPending || updateRound.isPending || deleteRound.isPending;
 
+  const players = round?.players ?? [];
+  const gameTypes = round?.gameTypes ?? [];
+  const hasWolf = gameTypes.includes('wolf');
+  const hasSnake = gameTypes.includes('snake');
+  const hasDots = gameTypes.includes('dots');
+  const hasNassau = gameTypes.includes('nassau');
+  const wantsPutts = hasSnake || hasDots;
+
   const selectedResult = useMemo(
     () => holes.find((hole) => hole.hole === selectedHole),
     [holes, selectedHole],
   );
-  const players = round?.players ?? [];
+
+  const autoWolfPlayerId = players.length > 0 ? players[(selectedHole - 1) % players.length]?.id ?? '' : '';
+  const effectiveWolfPlayerId = wolfOverridePlayerId || autoWolfPlayerId;
 
   const chooseHole = (hole: number) => {
     setSelectedHole(hole);
+    setActiveSubTab('score');
     const result = holes.find((item) => item.hole === hole);
     const nextScores: Record<string, string> = {};
     result?.scores.forEach((score) => { nextScores[score.playerId] = String(score.strokes); });
     setScores(nextScores);
-    setWolfPlayerId(result?.wolfPlayerId ?? '');
+    const nextPutts: Record<string, string> = {};
+    result?.putts?.forEach((putt) => { nextPutts[putt.playerId] = String(putt.putts); });
+    setPutts(nextPutts);
+    setWolfPartnerIds(result?.wolfPartnerIds ?? []);
+    setWolfOverridePlayerId(result?.wolfOverridePlayerId ?? '');
+    setWolfManualResult(result?.wolfManualResult ?? '');
+    const nextDots: Record<string, DotState> = {};
+    result?.dots?.forEach((dot) => { nextDots[dot.playerId] = { greenie: !!dot.greenie, sandy: !!dot.sandy, poley: !!dot.poley }; });
+    setDotFlags(nextDots);
     setWinnerPlayerId(result?.winnerPlayerId ?? '');
+  };
+
+  const toggleWolfPartner = (playerId: string) => {
+    setWolfPartnerIds((current) => (current.includes(playerId) ? current.filter((id) => id !== playerId) : [...current, playerId]));
+  };
+  const toggleDot = (playerId: string, key: keyof DotState) => {
+    setDotFlags((current) => ({
+      ...current,
+      [playerId]: { ...(current[playerId] ?? { greenie: false, sandy: false, poley: false }), [key]: !current[playerId]?.[key] },
+    }));
   };
 
   const saveHole = (event: FormEvent) => {
@@ -488,8 +564,16 @@ function Scorecard() {
         data: {
           hole: selectedHole,
           scores: players.map((player) => ({ playerId: player.id, strokes: Number(scores[player.id]) })),
-          wolfPlayerId: wolfPlayerId || null,
-          winnerPlayerId: winnerPlayerId || null,
+          putts: wantsPutts
+            ? players.filter((player) => putts[player.id]?.trim()).map((player) => ({ playerId: player.id, putts: Number(putts[player.id]) }))
+            : [],
+          wolfPartnerIds: hasWolf ? wolfPartnerIds.filter((id) => id !== effectiveWolfPlayerId) : [],
+          wolfOverridePlayerId: hasWolf ? (wolfOverridePlayerId || null) : null,
+          wolfManualResult: hasWolf && wolfManualResult ? wolfManualResult : null,
+          dots: hasDots
+            ? players.map((player) => ({ playerId: player.id, ...(dotFlags[player.id] ?? { greenie: false, sandy: false, poley: false }) }))
+            : [],
+          winnerPlayerId: hasNassau ? (winnerPlayerId || null) : null,
         },
       },
       {
@@ -540,7 +624,7 @@ function Scorecard() {
   };
 
   const removeRound = () => {
-    if (!round || !window.confirm(`Delete “${round.name}” from the ledger?`)) return;
+    if (!round || !window.confirm(`Delete "${round.name}" from the ledger?`)) return;
     deleteRound.mutate({ roundId }, {
       onSuccess: () => {
         void queryClient.invalidateQueries({ queryKey: getListRoundsQueryKey() });
@@ -554,6 +638,17 @@ function Scorecard() {
   if (roundQuery.isLoading) return <main className="content-wrap"><LoadingState label="Loading round scorecard" /></main>;
   if (roundQuery.isError || !round) return <main className="content-wrap"><ErrorState onRetry={() => void roundQuery.refetch()} message="This round could not be found." /></main>;
 
+  const subTabs: { key: SubTab; label: string }[] = [
+    { key: 'score', label: wantsPutts ? 'Score & putts' : 'Score' },
+    ...(hasWolf ? [{ key: 'wolf' as const, label: 'Wolf' }] : []),
+    ...(hasSnake ? [{ key: 'snake' as const, label: 'Snake' }] : []),
+    ...(hasDots ? [{ key: 'dots' as const, label: 'Dots' }] : []),
+  ];
+
+  const wolfResultLabel: Record<string, string> = { wolfwin: 'Wolf team won', oppwin: 'Opponents won', push: 'Push' };
+  const autoWolfName = players.find((p) => p.id === autoWolfPlayerId)?.name ?? '—';
+  const snakeHolderName = players.find((p) => p.id === settlement?.snakeHolderPlayerId)?.name ?? null;
+
   return (
     <main className="content-wrap">
       <div className="topbar" style={{ marginBottom: 23 }}>
@@ -562,7 +657,12 @@ function Scorecard() {
           {!editing ? (
             <>
               <h1 className="display page-title" style={{ fontSize: 'clamp(33px, 4vw, 47px)' }} data-testid="text-round-title">{round.name}</h1>
-              <div style={{ marginTop: 10 }}><StatusPill status={round.status} /></div>
+              <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <StatusPill status={round.status} />
+                <div className="game-chip-row" style={{ marginTop: 0 }}>
+                  {round.gameTypes.map((game) => <span className="game-chip" key={game}>{gameLabel(game)}</span>)}
+                </div>
+              </div>
             </>
           ) : (
             <form onSubmit={saveEdit} style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }} data-testid="form-edit-round">
@@ -604,6 +704,21 @@ function Scorecard() {
               >{hole}</button>
             ))}
           </div>
+          {subTabs.length > 1 ? (
+            <div className="sub-tabs" role="tablist" aria-label="Hole detail view">
+              {subTabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  className={`sub-tab ${activeSubTab === tab.key ? 'active' : ''}`}
+                  onClick={() => setActiveSubTab(tab.key)}
+                  role="tab"
+                  aria-selected={activeSubTab === tab.key}
+                  data-testid={`button-subtab-${tab.key}`}
+                >{tab.label}</button>
+              ))}
+            </div>
+          ) : null}
           <form className="hole-editor" onSubmit={saveHole} data-testid="form-record-hole">
             <div className="hole-editor-head">
               <div>
@@ -612,30 +727,114 @@ function Scorecard() {
               </div>
               {selectedResult ? <span className="status-pill live"><Check size={11} /> Recorded</span> : <span className="eyebrow">Not recorded</span>}
             </div>
-            <div className="score-fields">
-              {players.map((player) => (
-                <div className="score-player" key={player.id}>
-                  <div className="score-player-name"><span className="avatar" style={{ width: 25, height: 25, marginLeft: 0, border: 0 }}>{player.initials}</span>{player.name}<span>strokes</span></div>
-                  <input type="number" min="1" max="30" value={scores[player.id] ?? ''} onChange={(event) => setScores((current) => ({ ...current, [player.id]: event.target.value }))} aria-label={`${player.name} strokes`} data-testid={`input-strokes-${player.id}`} />
+
+            {activeSubTab === 'score' ? (
+              <>
+                <div className="score-fields">
+                  {players.map((player) => (
+                    <div className="score-player" key={player.id}>
+                      <div className="score-player-name"><span className="avatar" style={{ width: 25, height: 25, marginLeft: 0, border: 0 }}>{player.initials}</span>{player.name}<span>strokes</span></div>
+                      <input type="number" min="1" max="30" value={scores[player.id] ?? ''} onChange={(event) => setScores((current) => ({ ...current, [player.id]: event.target.value }))} aria-label={`${player.name} strokes`} data-testid={`input-strokes-${player.id}`} />
+                      {wantsPutts ? (
+                        <>
+                          <span className="score-player-putt-label">Putts</span>
+                          <input className="score-player-putt" type="number" min="0" max="12" value={putts[player.id] ?? ''} onChange={(event) => setPutts((current) => ({ ...current, [player.id]: event.target.value }))} aria-label={`${player.name} putts`} data-testid={`input-putts-${player.id}`} />
+                        </>
+                      ) : null}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <div className="select-row">
-              <div className="field">
-                <label htmlFor="wolf-player">Wolf (optional)</label>
-                <select id="wolf-player" value={wolfPlayerId} onChange={(event) => setWolfPlayerId(event.target.value)} data-testid="select-wolf-player">
-                  <option value="">No wolf selected</option>
-                  {players.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
-                </select>
+                {hasNassau ? (
+                  <div className="select-row">
+                    <div className="field">
+                      <label htmlFor="winner-player">Nassau hole winner (optional)</label>
+                      <select id="winner-player" value={winnerPlayerId} onChange={(event) => setWinnerPlayerId(event.target.value)} data-testid="select-winner-player">
+                        <option value="">Lowest score wins</option>
+                        {players.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
+
+            {activeSubTab === 'wolf' && hasWolf ? (
+              <div className="wolf-panel">
+                <div className="wolf-summary" data-testid="text-wolf-current">
+                  Wolf this hole: <strong>{players.find((p) => p.id === effectiveWolfPlayerId)?.name ?? '—'}</strong> (rotation: {autoWolfName})
+                </div>
+                <div className="field">
+                  <label htmlFor="wolf-override">Override wolf (optional)</label>
+                  <select id="wolf-override" value={wolfOverridePlayerId} onChange={(event) => { setWolfOverridePlayerId(event.target.value); setWolfPartnerIds([]); }} data-testid="select-wolf-override">
+                    <option value="">Use rotation ({autoWolfName})</option>
+                    {players.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Partners (leave empty to go it alone)</label>
+                  <div className="game-toggle">
+                    {players.filter((player) => player.id !== effectiveWolfPlayerId).map((player) => (
+                      <label className="check-label small" key={player.id}>
+                        <input type="checkbox" checked={wolfPartnerIds.includes(player.id)} onChange={() => toggleWolfPartner(player.id)} data-testid={`checkbox-wolf-partner-${player.id}`} />
+                        {player.name}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="field">
+                  <label htmlFor="wolf-result">Result</label>
+                  <select id="wolf-result" value={wolfManualResult} onChange={(event) => setWolfManualResult(event.target.value as typeof wolfManualResult)} data-testid="select-wolf-result">
+                    <option value="">Auto — best net ball</option>
+                    <option value="wolfwin">Wolf team wins</option>
+                    <option value="oppwin">Opponents win</option>
+                    <option value="push">Push (carries to next hole)</option>
+                  </select>
+                </div>
+                {selectedResult ? (
+                  <div className="wolf-result-readout" data-testid="text-wolf-readout">
+                    Recorded: {selectedResult.wolfResult ? wolfResultLabel[selectedResult.wolfResult] : 'Not yet decided'}
+                    {selectedResult.wolfCarry > 1 ? ` · ${selectedResult.wolfCarry}× stake carried in` : ''}
+                  </div>
+                ) : null}
               </div>
-              <div className="field">
-                <label htmlFor="winner-player">Hole winner</label>
-                <select id="winner-player" value={winnerPlayerId} onChange={(event) => setWinnerPlayerId(event.target.value)} data-testid="select-winner-player">
-                  <option value="">No winner selected</option>
-                  {players.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}
-                </select>
+            ) : null}
+
+            {activeSubTab === 'snake' && hasSnake ? (
+              <div className="snake-panel">
+                <p className="body-copy">Snake passes automatically to whoever 3-putts (4 for handicaps above 18) — enter putts on the Score &amp; putts tab.</p>
+                <div className="snake-holder" data-testid="text-snake-holder">
+                  Current holder: <strong>{snakeHolderName ?? 'Nobody yet'}</strong>
+                </div>
               </div>
-            </div>
+            ) : null}
+
+            {activeSubTab === 'dots' && hasDots ? (
+              <div className="dot-grid">
+                {players.map((player) => {
+                  const earned = selectedResult?.dotsEarned?.find((dot) => dot.playerId === player.id);
+                  return (
+                    <div className="dot-row" key={player.id}>
+                      <span className="dot-row-name">{player.name}</span>
+                      <label className="check-label small">
+                        <input type="checkbox" checked={!!dotFlags[player.id]?.greenie} onChange={() => toggleDot(player.id, 'greenie')} data-testid={`checkbox-greenie-${player.id}`} /> Greenie
+                      </label>
+                      <label className="check-label small">
+                        <input type="checkbox" checked={!!dotFlags[player.id]?.sandy} onChange={() => toggleDot(player.id, 'sandy')} data-testid={`checkbox-sandy-${player.id}`} /> Sandy
+                      </label>
+                      <label className="check-label small">
+                        <input type="checkbox" checked={!!dotFlags[player.id]?.poley} onChange={() => toggleDot(player.id, 'poley')} data-testid={`checkbox-poley-${player.id}`} /> Poley
+                      </label>
+                      <span className="dot-auto-badges">
+                        {earned?.eagle ? <span className="badge-chip">Eagle</span> : earned?.birdie ? <span className="badge-chip">Birdie</span> : null}
+                        {earned?.threeputt ? <span className="badge-chip warn">3-putt</span> : null}
+                      </span>
+                    </div>
+                  );
+                })}
+                <span className="field-hint">Birdies, eagles, and 3-putts are derived automatically from strokes and putts.</span>
+              </div>
+            ) : null}
+
             <div className="form-footer" style={{ marginTop: 22, paddingTop: 17 }}>
               <span className="body-copy" style={{ fontSize: 12, marginRight: 'auto' }}>{selectedResult ? 'Change the numbers and save again.' : 'Record this hole when the group agrees.'}</span>
               <button type="submit" className="button button-primary" disabled={isBusy} data-testid="button-save-hole">
@@ -646,27 +845,79 @@ function Scorecard() {
           </form>
         </section>
 
-        <SettlementPanel settlement={settlement} players={players} loading={settlementQuery.isLoading} />
+        <LedgerPanel settlement={settlement} players={players} gameTypes={gameTypes} loading={settlementQuery.isLoading} />
       </div>
       {notice ? <div className="toast-note" role="status" data-testid="status-action-notice">{notice}<button onClick={() => setNotice('')} aria-label="Dismiss notice" data-testid="button-dismiss-notice" style={{ background: 'none', border: 0, color: 'inherit', marginLeft: 12, padding: 0 }}><X size={14} /></button></div> : null}
     </main>
   );
 }
 
-function SettlementPanel({ settlement, players, loading }: { settlement?: Settlement; players: Player[]; loading: boolean }) {
+function LedgerPanel({ settlement, players, gameTypes, loading }: { settlement?: Settlement; players: Player[]; gameTypes: GameType[]; loading: boolean }) {
+  const hasWolf = gameTypes.includes('wolf');
+  const hasSnake = gameTypes.includes('snake');
+  const hasDots = gameTypes.includes('dots');
+  const hasNassau = gameTypes.includes('nassau');
+  const snakeHolderName = players.find((p) => p.id === settlement?.snakeHolderPlayerId)?.name;
+
   return (
     <aside className="card side-panel" aria-label="Current settlement" data-testid="panel-settlement">
-      <h3>Who owes who?</h3>
+      <h3>The ledger</h3>
       <p className="body-copy" style={{ fontSize: 12, margin: '-10px 0 10px' }}>Updates after every saved hole.</p>
       {loading ? (
         <><div className="skeleton" style={{ height: 44, marginBottom: 8 }} /><div className="skeleton" style={{ height: 44 }} /></>
       ) : settlement?.balances?.length ? (
-        settlement.balances.map((balance) => (
-          <div className="settlement-row" key={balance.playerId} data-testid={`row-settlement-${balance.playerId}`}>
-            <div className="settlement-person"><span className="avatar" style={{ marginLeft: 0, width: 29, height: 29 }}>{getInitials(balance.playerName)}</span>{balance.playerName}</div>
-            <span className={`balance ${balance.amount >= 0 ? 'up' : 'down'}`}>{balance.amount >= 0 ? '+' : ''}{formatMoney(balance.amount)}</span>
-          </div>
-        ))
+        <>
+          {settlement.balances.map((balance) => (
+            <div className="settlement-row" key={balance.playerId} data-testid={`row-settlement-${balance.playerId}`}>
+              <div className="settlement-person"><span className="avatar" style={{ marginLeft: 0, width: 29, height: 29 }}>{getInitials(balance.playerName)}</span>{balance.playerName}</div>
+              <span className={`balance ${balance.amount >= 0 ? 'up' : 'down'}`}>{balance.amount >= 0 ? '+' : ''}{formatMoney(balance.amount)}</span>
+            </div>
+          ))}
+
+          {settlement.payouts.length > 0 ? (
+            <>
+              <div className="ledger-section-title">Who pays whom</div>
+              {settlement.payouts.map((payout, index) => (
+                <div className="payout-row" key={`${payout.fromPlayerId}-${payout.toPlayerId}-${index}`} data-testid={`row-payout-${payout.fromPlayerId}-${payout.toPlayerId}`}>
+                  {payout.fromPlayerName} <ArrowRight size={12} /> {payout.toPlayerName}
+                  <strong>{formatMoney(payout.amount)}</strong>
+                </div>
+              ))}
+            </>
+          ) : null}
+
+          {hasWolf || hasSnake || hasDots || hasNassau ? (
+            <>
+              <div className="ledger-section-title">Point breakdown</div>
+              <table className="points-table" data-testid="table-point-breakdown">
+                <thead>
+                  <tr>
+                    <th>Player</th>
+                    {hasWolf ? <th>Wolf</th> : null}
+                    {hasDots ? <th>Dots</th> : null}
+                    {hasSnake ? <th>Snake</th> : null}
+                    {hasNassau ? <th>Nassau</th> : null}
+                  </tr>
+                </thead>
+                <tbody>
+                  {settlement.pointTotals.map((row) => (
+                    <tr key={row.playerId}>
+                      <td>{row.playerName}</td>
+                      {hasWolf ? <td>{formatPoints(row.wolfPoints)}</td> : null}
+                      {hasDots ? <td>{formatPoints(row.dotsPoints)}</td> : null}
+                      {hasSnake ? <td>{formatPoints(row.snakePoints)}</td> : null}
+                      {hasNassau ? <td>{formatMoney(row.nassauAmount)}</td> : null}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          ) : null}
+
+          {hasSnake ? (
+            <div className="side-stat"><span>Snake holder</span><strong data-testid="text-ledger-snake-holder">{snakeHolderName ?? '—'}</strong></div>
+          ) : null}
+        </>
       ) : (
         <div className="empty-state" style={{ padding: '27px 6px' }} data-testid="state-empty-settlement">
           <CircleDollarSign size={25} style={{ color: 'hsl(var(--muted-foreground))', marginBottom: 9 }} />

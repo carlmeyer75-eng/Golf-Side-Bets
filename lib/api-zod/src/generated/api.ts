@@ -20,19 +20,48 @@ export const HealthCheckResponse = zod.object({
 /**
  * @summary List golf rounds
  */
+export const listRoundsResponseDotPointsGreenieMin = 0;
+
+export const listRoundsResponseDotPointsSandyMin = 0;
+
+export const listRoundsResponseDotPointsBirdieMin = 0;
+
+export const listRoundsResponseDotPointsEagleMin = 0;
+
+export const listRoundsResponseDotPointsPoleyMin = 0;
+
+export const listRoundsResponseDotPointsThreeputtMin = 0;
+
+
+
 export const ListRoundsResponseItem = zod.object({
   "id": zod.number(),
   "name": zod.string(),
   "course": zod.string(),
   "playedAt": zod.string(),
   "status": zod.enum(['in_progress', 'completed']),
-  "gameTypes": zod.array(zod.enum(['wolf', 'nassau'])),
+  "gameTypes": zod.array(zod.enum(['wolf', 'nassau', 'snake', 'dots'])),
   "stake": zod.number(),
+  "dollarPerPoint": zod.number(),
+  "wolfUnit": zod.number(),
+  "snakeStake": zod.number(),
+  "dotPoints": zod.object({
+  "greenie": zod.number().min(listRoundsResponseDotPointsGreenieMin),
+  "sandy": zod.number().min(listRoundsResponseDotPointsSandyMin),
+  "birdie": zod.number().min(listRoundsResponseDotPointsBirdieMin),
+  "eagle": zod.number().min(listRoundsResponseDotPointsEagleMin),
+  "poley": zod.number().min(listRoundsResponseDotPointsPoleyMin),
+  "threeputt": zod.number().min(listRoundsResponseDotPointsThreeputtMin)
+}),
+  "holePars": zod.array(zod.number()),
+  "holeStrokeIndex": zod.array(zod.number()),
   "currentHole": zod.number(),
   "players": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "initials": zod.string()
+  "initials": zod.string(),
+  "handicap": zod.number(),
+  "snakeThreshold": zod.number().nullable()
 }))
 })
 export const ListRoundsResponse = zod.array(ListRoundsResponseItem)
@@ -46,9 +75,44 @@ export const ListRoundsResponse = zod.array(ListRoundsResponseItem)
 
 export const createRoundBodyStakeMin = 0.01;
 
+export const createRoundBodyDollarPerPointMin = 0;
+
+export const createRoundBodyWolfUnitMin = 0.01;
+
+export const createRoundBodySnakeStakeMin = 0;
+
+export const createRoundBodyDotPointsGreenieMin = 0;
+
+export const createRoundBodyDotPointsSandyMin = 0;
+
+export const createRoundBodyDotPointsBirdieMin = 0;
+
+export const createRoundBodyDotPointsEagleMin = 0;
+
+export const createRoundBodyDotPointsPoleyMin = 0;
+
+export const createRoundBodyDotPointsThreeputtMin = 0;
+
+export const createRoundBodyHoleParsItemMin = 3;
+export const createRoundBodyHoleParsItemMax = 6;
+
+export const createRoundBodyHoleParsMin = 18;
+export const createRoundBodyHoleParsMax = 18;
+
+export const createRoundBodyHoleStrokeIndexItemMax = 18;
+
+export const createRoundBodyHoleStrokeIndexMin = 18;
+export const createRoundBodyHoleStrokeIndexMax = 18;
+
+
+export const createRoundBodyPlayersItemHandicapMin = 0;
+export const createRoundBodyPlayersItemHandicapMax = 54;
+
+export const createRoundBodyPlayersItemSnakeThresholdMin = 2;
+export const createRoundBodyPlayersItemSnakeThresholdMax = 6;
 
 export const createRoundBodyPlayersMin = 2;
-export const createRoundBodyPlayersMax = 4;
+export const createRoundBodyPlayersMax = 6;
 
 
 
@@ -56,17 +120,46 @@ export const CreateRoundBody = zod.object({
   "name": zod.string().min(1),
   "course": zod.string().min(1),
   "playedAt": zod.string(),
-  "gameTypes": zod.array(zod.enum(['wolf', 'nassau'])).min(1),
+  "gameTypes": zod.array(zod.enum(['wolf', 'nassau', 'snake', 'dots'])).min(1),
   "stake": zod.number().min(createRoundBodyStakeMin),
+  "dollarPerPoint": zod.number().min(createRoundBodyDollarPerPointMin).optional(),
+  "wolfUnit": zod.number().min(createRoundBodyWolfUnitMin).optional(),
+  "snakeStake": zod.number().min(createRoundBodySnakeStakeMin).optional(),
+  "dotPoints": zod.object({
+  "greenie": zod.number().min(createRoundBodyDotPointsGreenieMin),
+  "sandy": zod.number().min(createRoundBodyDotPointsSandyMin),
+  "birdie": zod.number().min(createRoundBodyDotPointsBirdieMin),
+  "eagle": zod.number().min(createRoundBodyDotPointsEagleMin),
+  "poley": zod.number().min(createRoundBodyDotPointsPoleyMin),
+  "threeputt": zod.number().min(createRoundBodyDotPointsThreeputtMin)
+}).optional(),
+  "holePars": zod.array(zod.number().min(createRoundBodyHoleParsItemMin).max(createRoundBodyHoleParsItemMax)).min(createRoundBodyHoleParsMin).max(createRoundBodyHoleParsMax).optional(),
+  "holeStrokeIndex": zod.array(zod.number().min(1).max(createRoundBodyHoleStrokeIndexItemMax)).min(createRoundBodyHoleStrokeIndexMin).max(createRoundBodyHoleStrokeIndexMax).optional(),
   "players": zod.array(zod.object({
-  "name": zod.string().min(1)
+  "name": zod.string().min(1),
+  "handicap": zod.number().min(createRoundBodyPlayersItemHandicapMin).max(createRoundBodyPlayersItemHandicapMax).optional(),
+  "snakeThreshold": zod.number().min(createRoundBodyPlayersItemSnakeThresholdMin).max(createRoundBodyPlayersItemSnakeThresholdMax).nullish()
 })).min(createRoundBodyPlayersMin).max(createRoundBodyPlayersMax)
 })
+
+export const createRoundResponseOneDotPointsGreenieMin = 0;
+
+export const createRoundResponseOneDotPointsSandyMin = 0;
+
+export const createRoundResponseOneDotPointsBirdieMin = 0;
+
+export const createRoundResponseOneDotPointsEagleMin = 0;
+
+export const createRoundResponseOneDotPointsPoleyMin = 0;
+
+export const createRoundResponseOneDotPointsThreeputtMin = 0;
 
 export const createRoundResponseTwoHolesItemOneHoleMax = 18;
 
 
 export const createRoundResponseTwoHolesItemOneScoresMin = 2;
+
+export const createRoundResponseTwoHolesItemOnePuttsItemPuttsMin = 0;
 
 
 
@@ -76,13 +169,28 @@ export const CreateRoundResponse = zod.object({
   "course": zod.string(),
   "playedAt": zod.string(),
   "status": zod.enum(['in_progress', 'completed']),
-  "gameTypes": zod.array(zod.enum(['wolf', 'nassau'])),
+  "gameTypes": zod.array(zod.enum(['wolf', 'nassau', 'snake', 'dots'])),
   "stake": zod.number(),
+  "dollarPerPoint": zod.number(),
+  "wolfUnit": zod.number(),
+  "snakeStake": zod.number(),
+  "dotPoints": zod.object({
+  "greenie": zod.number().min(createRoundResponseOneDotPointsGreenieMin),
+  "sandy": zod.number().min(createRoundResponseOneDotPointsSandyMin),
+  "birdie": zod.number().min(createRoundResponseOneDotPointsBirdieMin),
+  "eagle": zod.number().min(createRoundResponseOneDotPointsEagleMin),
+  "poley": zod.number().min(createRoundResponseOneDotPointsPoleyMin),
+  "threeputt": zod.number().min(createRoundResponseOneDotPointsThreeputtMin)
+}),
+  "holePars": zod.array(zod.number()),
+  "holeStrokeIndex": zod.array(zod.number()),
   "currentHole": zod.number(),
   "players": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "initials": zod.string()
+  "initials": zod.string(),
+  "handicap": zod.number(),
+  "snakeThreshold": zod.number().nullable()
 }))
 }).and(zod.object({
   "holes": zod.array(zod.object({
@@ -91,11 +199,37 @@ export const CreateRoundResponse = zod.object({
   "playerId": zod.string(),
   "strokes": zod.number().min(1)
 })).min(createRoundResponseTwoHolesItemOneScoresMin),
-  "wolfPlayerId": zod.string().nullish(),
+  "putts": zod.array(zod.object({
+  "playerId": zod.string(),
+  "putts": zod.number().min(createRoundResponseTwoHolesItemOnePuttsItemPuttsMin)
+})).optional(),
+  "wolfPartnerIds": zod.array(zod.string()).optional(),
+  "wolfOverridePlayerId": zod.string().nullish(),
+  "wolfManualResult": zod.union([zod.literal('wolfwin'),zod.literal('oppwin'),zod.literal('push'),zod.literal(null)]).nullish(),
+  "dots": zod.array(zod.object({
+  "playerId": zod.string(),
+  "greenie": zod.boolean().optional(),
+  "sandy": zod.boolean().optional(),
+  "poley": zod.boolean().optional()
+})).optional(),
   "winnerPlayerId": zod.string().nullish()
 }).and(zod.object({
   "id": zod.number(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "effectiveWolfPlayerId": zod.string().nullable(),
+  "wolfTeamPlayerIds": zod.array(zod.string()),
+  "wolfResult": zod.union([zod.literal('wolfwin'),zod.literal('oppwin'),zod.literal('push'),zod.literal(null)]).nullable(),
+  "wolfCarry": zod.number(),
+  "snakeHolderPlayerId": zod.string().nullable(),
+  "dotsEarned": zod.array(zod.object({
+  "playerId": zod.string(),
+  "greenie": zod.boolean(),
+  "sandy": zod.boolean(),
+  "poley": zod.boolean(),
+  "birdie": zod.boolean(),
+  "eagle": zod.boolean(),
+  "threeputt": zod.boolean()
+}))
 }))),
   "settlement": zod.object({
   "balances": zod.array(zod.object({
@@ -103,6 +237,22 @@ export const CreateRoundResponse = zod.object({
   "playerName": zod.string(),
   "amount": zod.number()
 })),
+  "payouts": zod.array(zod.object({
+  "fromPlayerId": zod.string(),
+  "fromPlayerName": zod.string(),
+  "toPlayerId": zod.string(),
+  "toPlayerName": zod.string(),
+  "amount": zod.number()
+})),
+  "pointTotals": zod.array(zod.object({
+  "playerId": zod.string(),
+  "playerName": zod.string(),
+  "wolfPoints": zod.number(),
+  "dotsPoints": zod.number(),
+  "snakePoints": zod.number(),
+  "nassauAmount": zod.number()
+})),
+  "snakeHolderPlayerId": zod.string().nullable(),
   "holesRecorded": zod.number(),
   "totalPot": zod.number()
 })
@@ -116,10 +266,24 @@ export const GetRoundParams = zod.object({
   "roundId": zod.coerce.number()
 })
 
+export const getRoundResponseOneDotPointsGreenieMin = 0;
+
+export const getRoundResponseOneDotPointsSandyMin = 0;
+
+export const getRoundResponseOneDotPointsBirdieMin = 0;
+
+export const getRoundResponseOneDotPointsEagleMin = 0;
+
+export const getRoundResponseOneDotPointsPoleyMin = 0;
+
+export const getRoundResponseOneDotPointsThreeputtMin = 0;
+
 export const getRoundResponseTwoHolesItemOneHoleMax = 18;
 
 
 export const getRoundResponseTwoHolesItemOneScoresMin = 2;
+
+export const getRoundResponseTwoHolesItemOnePuttsItemPuttsMin = 0;
 
 
 
@@ -129,13 +293,28 @@ export const GetRoundResponse = zod.object({
   "course": zod.string(),
   "playedAt": zod.string(),
   "status": zod.enum(['in_progress', 'completed']),
-  "gameTypes": zod.array(zod.enum(['wolf', 'nassau'])),
+  "gameTypes": zod.array(zod.enum(['wolf', 'nassau', 'snake', 'dots'])),
   "stake": zod.number(),
+  "dollarPerPoint": zod.number(),
+  "wolfUnit": zod.number(),
+  "snakeStake": zod.number(),
+  "dotPoints": zod.object({
+  "greenie": zod.number().min(getRoundResponseOneDotPointsGreenieMin),
+  "sandy": zod.number().min(getRoundResponseOneDotPointsSandyMin),
+  "birdie": zod.number().min(getRoundResponseOneDotPointsBirdieMin),
+  "eagle": zod.number().min(getRoundResponseOneDotPointsEagleMin),
+  "poley": zod.number().min(getRoundResponseOneDotPointsPoleyMin),
+  "threeputt": zod.number().min(getRoundResponseOneDotPointsThreeputtMin)
+}),
+  "holePars": zod.array(zod.number()),
+  "holeStrokeIndex": zod.array(zod.number()),
   "currentHole": zod.number(),
   "players": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "initials": zod.string()
+  "initials": zod.string(),
+  "handicap": zod.number(),
+  "snakeThreshold": zod.number().nullable()
 }))
 }).and(zod.object({
   "holes": zod.array(zod.object({
@@ -144,11 +323,37 @@ export const GetRoundResponse = zod.object({
   "playerId": zod.string(),
   "strokes": zod.number().min(1)
 })).min(getRoundResponseTwoHolesItemOneScoresMin),
-  "wolfPlayerId": zod.string().nullish(),
+  "putts": zod.array(zod.object({
+  "playerId": zod.string(),
+  "putts": zod.number().min(getRoundResponseTwoHolesItemOnePuttsItemPuttsMin)
+})).optional(),
+  "wolfPartnerIds": zod.array(zod.string()).optional(),
+  "wolfOverridePlayerId": zod.string().nullish(),
+  "wolfManualResult": zod.union([zod.literal('wolfwin'),zod.literal('oppwin'),zod.literal('push'),zod.literal(null)]).nullish(),
+  "dots": zod.array(zod.object({
+  "playerId": zod.string(),
+  "greenie": zod.boolean().optional(),
+  "sandy": zod.boolean().optional(),
+  "poley": zod.boolean().optional()
+})).optional(),
   "winnerPlayerId": zod.string().nullish()
 }).and(zod.object({
   "id": zod.number(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "effectiveWolfPlayerId": zod.string().nullable(),
+  "wolfTeamPlayerIds": zod.array(zod.string()),
+  "wolfResult": zod.union([zod.literal('wolfwin'),zod.literal('oppwin'),zod.literal('push'),zod.literal(null)]).nullable(),
+  "wolfCarry": zod.number(),
+  "snakeHolderPlayerId": zod.string().nullable(),
+  "dotsEarned": zod.array(zod.object({
+  "playerId": zod.string(),
+  "greenie": zod.boolean(),
+  "sandy": zod.boolean(),
+  "poley": zod.boolean(),
+  "birdie": zod.boolean(),
+  "eagle": zod.boolean(),
+  "threeputt": zod.boolean()
+}))
 }))),
   "settlement": zod.object({
   "balances": zod.array(zod.object({
@@ -156,6 +361,22 @@ export const GetRoundResponse = zod.object({
   "playerName": zod.string(),
   "amount": zod.number()
 })),
+  "payouts": zod.array(zod.object({
+  "fromPlayerId": zod.string(),
+  "fromPlayerName": zod.string(),
+  "toPlayerId": zod.string(),
+  "toPlayerName": zod.string(),
+  "amount": zod.number()
+})),
+  "pointTotals": zod.array(zod.object({
+  "playerId": zod.string(),
+  "playerName": zod.string(),
+  "wolfPoints": zod.number(),
+  "dotsPoints": zod.number(),
+  "snakePoints": zod.number(),
+  "nassauAmount": zod.number()
+})),
+  "snakeHolderPlayerId": zod.string().nullable(),
   "holesRecorded": zod.number(),
   "totalPot": zod.number()
 })
@@ -171,18 +392,74 @@ export const UpdateRoundParams = zod.object({
 
 
 
+export const updateRoundBodyDollarPerPointMin = 0;
+
+export const updateRoundBodyWolfUnitMin = 0.01;
+
+export const updateRoundBodySnakeStakeMin = 0;
+
+export const updateRoundBodyDotPointsGreenieMin = 0;
+
+export const updateRoundBodyDotPointsSandyMin = 0;
+
+export const updateRoundBodyDotPointsBirdieMin = 0;
+
+export const updateRoundBodyDotPointsEagleMin = 0;
+
+export const updateRoundBodyDotPointsPoleyMin = 0;
+
+export const updateRoundBodyDotPointsThreeputtMin = 0;
+
+export const updateRoundBodyHoleParsItemMin = 3;
+export const updateRoundBodyHoleParsItemMax = 6;
+
+export const updateRoundBodyHoleParsMin = 18;
+export const updateRoundBodyHoleParsMax = 18;
+
+export const updateRoundBodyHoleStrokeIndexItemMax = 18;
+
+export const updateRoundBodyHoleStrokeIndexMin = 18;
+export const updateRoundBodyHoleStrokeIndexMax = 18;
+
 
 
 export const UpdateRoundBody = zod.object({
   "name": zod.string().min(1).optional(),
   "course": zod.string().min(1).optional(),
-  "status": zod.enum(['in_progress', 'completed']).optional()
+  "status": zod.enum(['in_progress', 'completed']).optional(),
+  "dollarPerPoint": zod.number().min(updateRoundBodyDollarPerPointMin).optional(),
+  "wolfUnit": zod.number().min(updateRoundBodyWolfUnitMin).optional(),
+  "snakeStake": zod.number().min(updateRoundBodySnakeStakeMin).optional(),
+  "dotPoints": zod.object({
+  "greenie": zod.number().min(updateRoundBodyDotPointsGreenieMin),
+  "sandy": zod.number().min(updateRoundBodyDotPointsSandyMin),
+  "birdie": zod.number().min(updateRoundBodyDotPointsBirdieMin),
+  "eagle": zod.number().min(updateRoundBodyDotPointsEagleMin),
+  "poley": zod.number().min(updateRoundBodyDotPointsPoleyMin),
+  "threeputt": zod.number().min(updateRoundBodyDotPointsThreeputtMin)
+}).optional(),
+  "holePars": zod.array(zod.number().min(updateRoundBodyHoleParsItemMin).max(updateRoundBodyHoleParsItemMax)).min(updateRoundBodyHoleParsMin).max(updateRoundBodyHoleParsMax).optional(),
+  "holeStrokeIndex": zod.array(zod.number().min(1).max(updateRoundBodyHoleStrokeIndexItemMax)).min(updateRoundBodyHoleStrokeIndexMin).max(updateRoundBodyHoleStrokeIndexMax).optional()
 })
+
+export const updateRoundResponseOneDotPointsGreenieMin = 0;
+
+export const updateRoundResponseOneDotPointsSandyMin = 0;
+
+export const updateRoundResponseOneDotPointsBirdieMin = 0;
+
+export const updateRoundResponseOneDotPointsEagleMin = 0;
+
+export const updateRoundResponseOneDotPointsPoleyMin = 0;
+
+export const updateRoundResponseOneDotPointsThreeputtMin = 0;
 
 export const updateRoundResponseTwoHolesItemOneHoleMax = 18;
 
 
 export const updateRoundResponseTwoHolesItemOneScoresMin = 2;
+
+export const updateRoundResponseTwoHolesItemOnePuttsItemPuttsMin = 0;
 
 
 
@@ -192,13 +469,28 @@ export const UpdateRoundResponse = zod.object({
   "course": zod.string(),
   "playedAt": zod.string(),
   "status": zod.enum(['in_progress', 'completed']),
-  "gameTypes": zod.array(zod.enum(['wolf', 'nassau'])),
+  "gameTypes": zod.array(zod.enum(['wolf', 'nassau', 'snake', 'dots'])),
   "stake": zod.number(),
+  "dollarPerPoint": zod.number(),
+  "wolfUnit": zod.number(),
+  "snakeStake": zod.number(),
+  "dotPoints": zod.object({
+  "greenie": zod.number().min(updateRoundResponseOneDotPointsGreenieMin),
+  "sandy": zod.number().min(updateRoundResponseOneDotPointsSandyMin),
+  "birdie": zod.number().min(updateRoundResponseOneDotPointsBirdieMin),
+  "eagle": zod.number().min(updateRoundResponseOneDotPointsEagleMin),
+  "poley": zod.number().min(updateRoundResponseOneDotPointsPoleyMin),
+  "threeputt": zod.number().min(updateRoundResponseOneDotPointsThreeputtMin)
+}),
+  "holePars": zod.array(zod.number()),
+  "holeStrokeIndex": zod.array(zod.number()),
   "currentHole": zod.number(),
   "players": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "initials": zod.string()
+  "initials": zod.string(),
+  "handicap": zod.number(),
+  "snakeThreshold": zod.number().nullable()
 }))
 }).and(zod.object({
   "holes": zod.array(zod.object({
@@ -207,11 +499,37 @@ export const UpdateRoundResponse = zod.object({
   "playerId": zod.string(),
   "strokes": zod.number().min(1)
 })).min(updateRoundResponseTwoHolesItemOneScoresMin),
-  "wolfPlayerId": zod.string().nullish(),
+  "putts": zod.array(zod.object({
+  "playerId": zod.string(),
+  "putts": zod.number().min(updateRoundResponseTwoHolesItemOnePuttsItemPuttsMin)
+})).optional(),
+  "wolfPartnerIds": zod.array(zod.string()).optional(),
+  "wolfOverridePlayerId": zod.string().nullish(),
+  "wolfManualResult": zod.union([zod.literal('wolfwin'),zod.literal('oppwin'),zod.literal('push'),zod.literal(null)]).nullish(),
+  "dots": zod.array(zod.object({
+  "playerId": zod.string(),
+  "greenie": zod.boolean().optional(),
+  "sandy": zod.boolean().optional(),
+  "poley": zod.boolean().optional()
+})).optional(),
   "winnerPlayerId": zod.string().nullish()
 }).and(zod.object({
   "id": zod.number(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "effectiveWolfPlayerId": zod.string().nullable(),
+  "wolfTeamPlayerIds": zod.array(zod.string()),
+  "wolfResult": zod.union([zod.literal('wolfwin'),zod.literal('oppwin'),zod.literal('push'),zod.literal(null)]).nullable(),
+  "wolfCarry": zod.number(),
+  "snakeHolderPlayerId": zod.string().nullable(),
+  "dotsEarned": zod.array(zod.object({
+  "playerId": zod.string(),
+  "greenie": zod.boolean(),
+  "sandy": zod.boolean(),
+  "poley": zod.boolean(),
+  "birdie": zod.boolean(),
+  "eagle": zod.boolean(),
+  "threeputt": zod.boolean()
+}))
 }))),
   "settlement": zod.object({
   "balances": zod.array(zod.object({
@@ -219,6 +537,22 @@ export const UpdateRoundResponse = zod.object({
   "playerName": zod.string(),
   "amount": zod.number()
 })),
+  "payouts": zod.array(zod.object({
+  "fromPlayerId": zod.string(),
+  "fromPlayerName": zod.string(),
+  "toPlayerId": zod.string(),
+  "toPlayerName": zod.string(),
+  "amount": zod.number()
+})),
+  "pointTotals": zod.array(zod.object({
+  "playerId": zod.string(),
+  "playerName": zod.string(),
+  "wolfPoints": zod.number(),
+  "dotsPoints": zod.number(),
+  "snakePoints": zod.number(),
+  "nassauAmount": zod.number()
+})),
+  "snakeHolderPlayerId": zod.string().nullable(),
   "holesRecorded": zod.number(),
   "totalPot": zod.number()
 })
@@ -247,6 +581,8 @@ export const recordHoleBodyHoleMax = 18;
 
 export const recordHoleBodyScoresMin = 2;
 
+export const recordHoleBodyPuttsItemPuttsMin = 0;
+
 
 
 export const RecordHoleBody = zod.object({
@@ -255,7 +591,19 @@ export const RecordHoleBody = zod.object({
   "playerId": zod.string(),
   "strokes": zod.number().min(1)
 })).min(recordHoleBodyScoresMin),
-  "wolfPlayerId": zod.string().nullish(),
+  "putts": zod.array(zod.object({
+  "playerId": zod.string(),
+  "putts": zod.number().min(recordHoleBodyPuttsItemPuttsMin)
+})).optional(),
+  "wolfPartnerIds": zod.array(zod.string()).optional(),
+  "wolfOverridePlayerId": zod.string().nullish(),
+  "wolfManualResult": zod.union([zod.literal('wolfwin'),zod.literal('oppwin'),zod.literal('push'),zod.literal(null)]).nullish(),
+  "dots": zod.array(zod.object({
+  "playerId": zod.string(),
+  "greenie": zod.boolean().optional(),
+  "sandy": zod.boolean().optional(),
+  "poley": zod.boolean().optional()
+})).optional(),
   "winnerPlayerId": zod.string().nullish()
 })
 
@@ -263,6 +611,8 @@ export const recordHoleResponseOneHoleMax = 18;
 
 
 export const recordHoleResponseOneScoresMin = 2;
+
+export const recordHoleResponseOnePuttsItemPuttsMin = 0;
 
 
 
@@ -272,11 +622,37 @@ export const RecordHoleResponse = zod.object({
   "playerId": zod.string(),
   "strokes": zod.number().min(1)
 })).min(recordHoleResponseOneScoresMin),
-  "wolfPlayerId": zod.string().nullish(),
+  "putts": zod.array(zod.object({
+  "playerId": zod.string(),
+  "putts": zod.number().min(recordHoleResponseOnePuttsItemPuttsMin)
+})).optional(),
+  "wolfPartnerIds": zod.array(zod.string()).optional(),
+  "wolfOverridePlayerId": zod.string().nullish(),
+  "wolfManualResult": zod.union([zod.literal('wolfwin'),zod.literal('oppwin'),zod.literal('push'),zod.literal(null)]).nullish(),
+  "dots": zod.array(zod.object({
+  "playerId": zod.string(),
+  "greenie": zod.boolean().optional(),
+  "sandy": zod.boolean().optional(),
+  "poley": zod.boolean().optional()
+})).optional(),
   "winnerPlayerId": zod.string().nullish()
 }).and(zod.object({
   "id": zod.number(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "effectiveWolfPlayerId": zod.string().nullable(),
+  "wolfTeamPlayerIds": zod.array(zod.string()),
+  "wolfResult": zod.union([zod.literal('wolfwin'),zod.literal('oppwin'),zod.literal('push'),zod.literal(null)]).nullable(),
+  "wolfCarry": zod.number(),
+  "snakeHolderPlayerId": zod.string().nullable(),
+  "dotsEarned": zod.array(zod.object({
+  "playerId": zod.string(),
+  "greenie": zod.boolean(),
+  "sandy": zod.boolean(),
+  "poley": zod.boolean(),
+  "birdie": zod.boolean(),
+  "eagle": zod.boolean(),
+  "threeputt": zod.boolean()
+}))
 }))
 
 
@@ -292,6 +668,8 @@ export const listHoleResultsResponseOneHoleMax = 18;
 
 export const listHoleResultsResponseOneScoresMin = 2;
 
+export const listHoleResultsResponseOnePuttsItemPuttsMin = 0;
+
 
 
 export const ListHoleResultsResponseItem = zod.object({
@@ -300,11 +678,37 @@ export const ListHoleResultsResponseItem = zod.object({
   "playerId": zod.string(),
   "strokes": zod.number().min(1)
 })).min(listHoleResultsResponseOneScoresMin),
-  "wolfPlayerId": zod.string().nullish(),
+  "putts": zod.array(zod.object({
+  "playerId": zod.string(),
+  "putts": zod.number().min(listHoleResultsResponseOnePuttsItemPuttsMin)
+})).optional(),
+  "wolfPartnerIds": zod.array(zod.string()).optional(),
+  "wolfOverridePlayerId": zod.string().nullish(),
+  "wolfManualResult": zod.union([zod.literal('wolfwin'),zod.literal('oppwin'),zod.literal('push'),zod.literal(null)]).nullish(),
+  "dots": zod.array(zod.object({
+  "playerId": zod.string(),
+  "greenie": zod.boolean().optional(),
+  "sandy": zod.boolean().optional(),
+  "poley": zod.boolean().optional()
+})).optional(),
   "winnerPlayerId": zod.string().nullish()
 }).and(zod.object({
   "id": zod.number(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "effectiveWolfPlayerId": zod.string().nullable(),
+  "wolfTeamPlayerIds": zod.array(zod.string()),
+  "wolfResult": zod.union([zod.literal('wolfwin'),zod.literal('oppwin'),zod.literal('push'),zod.literal(null)]).nullable(),
+  "wolfCarry": zod.number(),
+  "snakeHolderPlayerId": zod.string().nullable(),
+  "dotsEarned": zod.array(zod.object({
+  "playerId": zod.string(),
+  "greenie": zod.boolean(),
+  "sandy": zod.boolean(),
+  "poley": zod.boolean(),
+  "birdie": zod.boolean(),
+  "eagle": zod.boolean(),
+  "threeputt": zod.boolean()
+}))
 }))
 export const ListHoleResultsResponse = zod.array(ListHoleResultsResponseItem)
 
@@ -322,6 +726,22 @@ export const GetRoundSettlementResponse = zod.object({
   "playerName": zod.string(),
   "amount": zod.number()
 })),
+  "payouts": zod.array(zod.object({
+  "fromPlayerId": zod.string(),
+  "fromPlayerName": zod.string(),
+  "toPlayerId": zod.string(),
+  "toPlayerName": zod.string(),
+  "amount": zod.number()
+})),
+  "pointTotals": zod.array(zod.object({
+  "playerId": zod.string(),
+  "playerName": zod.string(),
+  "wolfPoints": zod.number(),
+  "dotsPoints": zod.number(),
+  "snakePoints": zod.number(),
+  "nassauAmount": zod.number()
+})),
+  "snakeHolderPlayerId": zod.string().nullable(),
   "holesRecorded": zod.number(),
   "totalPot": zod.number()
 })
@@ -330,6 +750,20 @@ export const GetRoundSettlementResponse = zod.object({
 /**
  * @summary Get a summary of tracked rounds
  */
+export const getDashboardSummaryResponseLatestRoundOneDotPointsGreenieMin = 0;
+
+export const getDashboardSummaryResponseLatestRoundOneDotPointsSandyMin = 0;
+
+export const getDashboardSummaryResponseLatestRoundOneDotPointsBirdieMin = 0;
+
+export const getDashboardSummaryResponseLatestRoundOneDotPointsEagleMin = 0;
+
+export const getDashboardSummaryResponseLatestRoundOneDotPointsPoleyMin = 0;
+
+export const getDashboardSummaryResponseLatestRoundOneDotPointsThreeputtMin = 0;
+
+
+
 export const GetDashboardSummaryResponse = zod.object({
   "totalRounds": zod.number(),
   "activeRounds": zod.number(),
@@ -340,13 +774,28 @@ export const GetDashboardSummaryResponse = zod.object({
   "course": zod.string(),
   "playedAt": zod.string(),
   "status": zod.enum(['in_progress', 'completed']),
-  "gameTypes": zod.array(zod.enum(['wolf', 'nassau'])),
+  "gameTypes": zod.array(zod.enum(['wolf', 'nassau', 'snake', 'dots'])),
   "stake": zod.number(),
+  "dollarPerPoint": zod.number(),
+  "wolfUnit": zod.number(),
+  "snakeStake": zod.number(),
+  "dotPoints": zod.object({
+  "greenie": zod.number().min(getDashboardSummaryResponseLatestRoundOneDotPointsGreenieMin),
+  "sandy": zod.number().min(getDashboardSummaryResponseLatestRoundOneDotPointsSandyMin),
+  "birdie": zod.number().min(getDashboardSummaryResponseLatestRoundOneDotPointsBirdieMin),
+  "eagle": zod.number().min(getDashboardSummaryResponseLatestRoundOneDotPointsEagleMin),
+  "poley": zod.number().min(getDashboardSummaryResponseLatestRoundOneDotPointsPoleyMin),
+  "threeputt": zod.number().min(getDashboardSummaryResponseLatestRoundOneDotPointsThreeputtMin)
+}),
+  "holePars": zod.array(zod.number()),
+  "holeStrokeIndex": zod.array(zod.number()),
   "currentHole": zod.number(),
   "players": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "initials": zod.string()
+  "initials": zod.string(),
+  "handicap": zod.number(),
+  "snakeThreshold": zod.number().nullable()
 }))
 }),zod.null()])
 })

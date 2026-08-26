@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { DotPoints } from './dotPoints';
 import type { RoundUpdateStatus } from './roundUpdateStatus';
 
 export interface RoundUpdate {
@@ -13,4 +14,25 @@ export interface RoundUpdate {
   /** @minLength 1 */
   course?: string;
   status?: RoundUpdateStatus;
+  /** @minimum 0 */
+  dollarPerPoint?: number;
+  /** @minimum 0.01 */
+  wolfUnit?: number;
+  /** @minimum 0 */
+  snakeStake?: number;
+  dotPoints?: DotPoints;
+  /**
+     * @minItems 18
+     * @maxItems 18
+     * @items.minimum 3
+     * @items.maximum 6
+     */
+  holePars?: number[];
+  /**
+     * @minItems 18
+     * @maxItems 18
+     * @items.minimum 1
+     * @items.maximum 18
+     */
+  holeStrokeIndex?: number[];
 }

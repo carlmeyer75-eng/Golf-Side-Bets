@@ -6,10 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type RoundInputGameTypesItem = typeof RoundInputGameTypesItem[keyof typeof RoundInputGameTypesItem];
+export type GameType = typeof GameType[keyof typeof GameType];
 
 
-export const RoundInputGameTypesItem = {
+export const GameType = {
   wolf: 'wolf',
   nassau: 'nassau',
+  snake: 'snake',
+  dots: 'dots',
 } as const;

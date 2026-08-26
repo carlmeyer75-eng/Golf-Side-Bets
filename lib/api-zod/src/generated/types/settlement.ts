@@ -6,9 +6,15 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { Balance } from './balance';
+import type { Payout } from './payout';
+import type { PlayerPoints } from './playerPoints';
 
 export interface Settlement {
   balances: Balance[];
+  payouts: Payout[];
+  pointTotals: PlayerPoints[];
+  /** @nullable */
+  snakeHolderPlayerId: string | null;
   holesRecorded: number;
   totalPot: number;
 }

@@ -10,4 +10,7 @@ export interface Player {
   id: string;
   name: string;
   initials: string;
+  handicap: number;
+  /** @nullable */
+  snakeThreshold: number | null;
 }

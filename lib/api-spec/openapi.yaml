@@ -189,14 +189,51 @@ components:
           type: string
         initials:
           type: string
-      required: [id, name, initials]
+        handicap:
+          type: number
+        snakeThreshold:
+          type: ["number", "null"]
+      required: [id, name, initials, handicap, snakeThreshold]
     PlayerInput:
       type: object
       properties:
         name:
           type: string
           minLength: 1
+        handicap:
+          type: number
+          minimum: 0
+          maximum: 54
+        snakeThreshold:
+          type: ["number", "null"]
+          minimum: 2
+          maximum: 6
       required: [name]
+    DotPoints:
+      type: object
+      properties:
+        greenie:
+          type: number
+          minimum: 0
+        sandy:
+          type: number
+          minimum: 0
+        birdie:
+          type: number
+          minimum: 0
+        eagle:
+          type: number
+          minimum: 0
+        poley:
+          type: number
+          minimum: 0
+        threeputt:
+          type: number
+          minimum: 0
+      required: [greenie, sandy, birdie, eagle, poley, threeputt]
+    GameType:
+      type: string
+      enum: [wolf, nassau, snake, dots]
     Round:
       type: object
       properties:
@@ -214,17 +251,49 @@ components:
         gameTypes:
           type: array
           items:
-            type: string
-            enum: [wolf, nassau]
+            $ref: "#/components/schemas/GameType"
         stake:
           type: number
+        dollarPerPoint:
+          type: number
+        wolfUnit:
+          type: number
+        snakeStake:
+          type: number
+        dotPoints:
+          $ref: "#/components/schemas/DotPoints"
+        holePars:
+          type: array
+          items:
+            type: number
+        holeStrokeIndex:
+          type: array
+          items:
+            type: number
         currentHole:
           type: number
         players:
           type: array
           items:
             $ref: "#/components/schemas/Player"
-      required: [id, name, course, playedAt, status, gameTypes, stake, currentHole, players]
+      required:
+        [
+          id,
+          name,
+          course,
+          playedAt,
+          status,
+          gameTypes,
+          stake,
+          dollarPerPoint,
+          wolfUnit,
+          snakeStake,
+          dotPoints,
+          holePars,
+          holeStrokeIndex,
+          currentHole,
+          players,
+        ]
     RoundInput:
       type: object
       properties:
@@ -240,15 +309,41 @@ components:
           type: array
           minItems: 1
           items:
-            type: string
-            enum: [wolf, nassau]
+            $ref: "#/components/schemas/GameType"
         stake:
           type: number
           minimum: 0.01
+        dollarPerPoint:
+          type: number
+          minimum: 0
+        wolfUnit:
+          type: number
+          minimum: 0.01
+        snakeStake:
+          type: number
+          minimum: 0
+        dotPoints:
+          $ref: "#/components/schemas/DotPoints"
+        holePars:
+          type: array
+          minItems: 18
+          maxItems: 18
+          items:
+            type: number
+            minimum: 3
+            maximum: 6
+        holeStrokeIndex:
+          type: array
+          minItems: 18
+          maxItems: 18
+          items:
+            type: number
+            minimum: 1
+            maximum: 18
         players:
           type: array
           minItems: 2
-          maxItems: 4
+          maxItems: 6
           items:
             $ref: "#/components/schemas/PlayerInput"
       required: [name, course, playedAt, gameTypes, stake, players]
@@ -264,6 +359,33 @@ components:
         status:
           type: string
           enum: [in_progress, completed]
+        dollarPerPoint:
+          type: number
+          minimum: 0
+        wolfUnit:
+          type: number
+          minimum: 0.01
+        snakeStake:
+          type: number
+          minimum: 0
+        dotPoints:
+          $ref: "#/components/schemas/DotPoints"
+        holePars:
+          type: array
+          minItems: 18
+          maxItems: 18
+          items:
+            type: number
+            minimum: 3
+            maximum: 6
+        holeStrokeIndex:
+          type: array
+          minItems: 18
+          maxItems: 18
+          items:
+            type: number
+            minimum: 1
+            maximum: 18
     ScoreInput:
       type: object
       properties:
@@ -273,6 +395,27 @@ components:
           type: number
           minimum: 1
       required: [playerId, strokes]
+    PuttInput:
+      type: object
+      properties:
+        playerId:
+          type: string
+        putts:
+          type: number
+          minimum: 0
+      required: [playerId, putts]
+    DotFlagsInput:
+      type: object
+      properties:
+        playerId:
+          type: string
+        greenie:
+          type: boolean
+        sandy:
+          type: boolean
+        poley:
+          type: boolean
+      required: [playerId]
     HoleResultInput:
       type: object
       properties:
@@ -285,11 +428,44 @@ components:
           minItems: 2
           items:
             $ref: "#/components/schemas/ScoreInput"
-        wolfPlayerId:
+        putts:
+          type: array
+          items:
+            $ref: "#/components/schemas/PuttInput"
+        wolfPartnerIds:
+          type: array
+          items:
+            type: string
+        wolfOverridePlayerId:
           type: ["string", "null"]
+        wolfManualResult:
+          type: ["string", "null"]
+          enum: ["wolfwin", "oppwin", "push", null]
+        dots:
+          type: array
+          items:
+            $ref: "#/components/schemas/DotFlagsInput"
         winnerPlayerId:
           type: ["string", "null"]
       required: [hole, scores]
+    PlayerDots:
+      type: object
+      properties:
+        playerId:
+          type: string
+        greenie:
+          type: boolean
+        sandy:
+          type: boolean
+        poley:
+          type: boolean
+        birdie:
+          type: boolean
+        eagle:
+          type: boolean
+        threeputt:
+          type: boolean
+      required: [playerId, greenie, sandy, poley, birdie, eagle, threeputt]
     HoleResult:
       allOf:
         - $ref: "#/components/schemas/HoleResultInput"
@@ -299,7 +475,34 @@ components:
               type: number
             createdAt:
               type: string
-          required: [id, createdAt]
+            effectiveWolfPlayerId:
+              type: ["string", "null"]
+            wolfTeamPlayerIds:
+              type: array
+              items:
+                type: string
+            wolfResult:
+              type: ["string", "null"]
+              enum: ["wolfwin", "oppwin", "push", null]
+            wolfCarry:
+              type: number
+            snakeHolderPlayerId:
+              type: ["string", "null"]
+            dotsEarned:
+              type: array
+              items:
+                $ref: "#/components/schemas/PlayerDots"
+          required:
+            [
+              id,
+              createdAt,
+              effectiveWolfPlayerId,
+              wolfTeamPlayerIds,
+              wolfResult,
+              wolfCarry,
+              snakeHolderPlayerId,
+              dotsEarned,
+            ]
     RoundDetail:
       allOf:
         - $ref: "#/components/schemas/Round"
@@ -322,6 +525,36 @@ components:
         amount:
           type: number
       required: [playerId, playerName, amount]
+    Payout:
+      type: object
+      properties:
+        fromPlayerId:
+          type: string
+        fromPlayerName:
+          type: string
+        toPlayerId:
+          type: string
+        toPlayerName:
+          type: string
+        amount:
+          type: number
+      required: [fromPlayerId, fromPlayerName, toPlayerId, toPlayerName, amount]
+    PlayerPoints:
+      type: object
+      properties:
+        playerId:
+          type: string
+        playerName:
+          type: string
+        wolfPoints:
+          type: number
+        dotsPoints:
+          type: number
+        snakePoints:
+          type: number
+        nassauAmount:
+          type: number
+      required: [playerId, playerName, wolfPoints, dotsPoints, snakePoints, nassauAmount]
     Settlement:
       type: object
       properties:
@@ -329,11 +562,21 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Balance"
+        payouts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Payout"
+        pointTotals:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlayerPoints"
+        snakeHolderPlayerId:
+          type: ["string", "null"]
         holesRecorded:
           type: number
         totalPot:
           type: number
-      required: [balances, holesRecorded, totalPot]
+      required: [balances, payouts, pointTotals, snakeHolderPlayerId, holesRecorded, totalPot]
     DashboardSummary:
       type: object
       properties:
@@ -348,4 +591,3 @@ components:
             - $ref: "#/components/schemas/Round"
             - type: "null"
       required: [totalRounds, activeRounds, totalHolesRecorded, latestRound]
-

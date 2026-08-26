@@ -5,6 +5,9 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { DotFlagsInput } from './dotFlagsInput';
+import type { HoleResultInputWolfManualResult } from './holeResultInputWolfManualResult';
+import type { PuttInput } from './puttInput';
 import type { ScoreInput } from './scoreInput';
 
 export interface HoleResultInput {
@@ -15,8 +18,13 @@ export interface HoleResultInput {
   hole: number;
   /** @minItems 2 */
   scores: ScoreInput[];
+  putts?: PuttInput[];
+  wolfPartnerIds?: string[];
   /** @nullable */
-  wolfPlayerId?: string | null;
+  wolfOverridePlayerId?: string | null;
+  /** @nullable */
+  wolfManualResult?: HoleResultInputWolfManualResult;
+  dots?: DotFlagsInput[];
   /** @nullable */
   winnerPlayerId?: string | null;
 }
