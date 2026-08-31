@@ -559,9 +559,26 @@ components:
           type: number
         snakePoints:
           type: number
+        nassauFrontAmount:
+          type: number
+        nassauBackAmount:
+          type: number
+        nassauOverallAmount:
+          type: number
         nassauAmount:
           type: number
-      required: [playerId, playerName, wolfPoints, dotsPoints, snakePoints, nassauAmount]
+      required:
+        [
+          playerId,
+          playerName,
+          wolfPoints,
+          dotsPoints,
+          snakePoints,
+          nassauFrontAmount,
+          nassauBackAmount,
+          nassauOverallAmount,
+          nassauAmount,
+        ]
     Settlement:
       type: object
       properties:

@@ -252,6 +252,9 @@ export const CreateRoundResponse = zod.object({
   "wolfPoints": zod.number(),
   "dotsPoints": zod.number(),
   "snakePoints": zod.number(),
+  "nassauFrontAmount": zod.number(),
+  "nassauBackAmount": zod.number(),
+  "nassauOverallAmount": zod.number(),
   "nassauAmount": zod.number()
 })),
   "snakeHolderPlayerId": zod.string().nullable(),
@@ -378,6 +381,9 @@ export const GetRoundResponse = zod.object({
   "wolfPoints": zod.number(),
   "dotsPoints": zod.number(),
   "snakePoints": zod.number(),
+  "nassauFrontAmount": zod.number(),
+  "nassauBackAmount": zod.number(),
+  "nassauOverallAmount": zod.number(),
   "nassauAmount": zod.number()
 })),
   "snakeHolderPlayerId": zod.string().nullable(),
@@ -556,6 +562,9 @@ export const UpdateRoundResponse = zod.object({
   "wolfPoints": zod.number(),
   "dotsPoints": zod.number(),
   "snakePoints": zod.number(),
+  "nassauFrontAmount": zod.number(),
+  "nassauBackAmount": zod.number(),
+  "nassauOverallAmount": zod.number(),
   "nassauAmount": zod.number()
 })),
   "snakeHolderPlayerId": zod.string().nullable(),
@@ -750,6 +759,9 @@ export const GetRoundSettlementResponse = zod.object({
   "wolfPoints": zod.number(),
   "dotsPoints": zod.number(),
   "snakePoints": zod.number(),
+  "nassauFrontAmount": zod.number(),
+  "nassauBackAmount": zod.number(),
+  "nassauOverallAmount": zod.number(),
   "nassauAmount": zod.number()
 })),
   "snakeHolderPlayerId": zod.string().nullable(),

@@ -246,3 +246,94 @@ describe("computeRound — Snake and Dots", () => {
     assertZeroSum(computation, players);
   });
 });
+
+describe("computeRound — Nassau match play", () => {
+  function hole(hole: number, p1Strokes: number, p2Strokes: number, winnerPlayerId: string | null = null): HoleRow {
+    return {
+      hole,
+      scores: [
+        { playerId: "p1", strokes: p1Strokes },
+        { playerId: "p2", strokes: p2Strokes },
+      ],
+      putts: [],
+      wolfPartnerIds: [],
+      wolfOverridePlayerId: null,
+      wolfManualResult: null,
+      dots: [],
+      winnerPlayerId,
+      snakeHolderPlayerId: null,
+    };
+  }
+
+  it("settles front, back, and overall bets independently using net hole wins", () => {
+    const players = makePlayers(2);
+    const settings = settingsFor(players, ["nassau"]);
+    const holes = [
+      ...Array.from({ length: 5 }, (_, index) => hole(index + 1, 3, 4)),
+      ...Array.from({ length: 4 }, (_, index) => hole(index + 6, 4, 3)),
+      ...Array.from({ length: 5 }, (_, index) => hole(index + 10, 4, 3)),
+      ...Array.from({ length: 4 }, (_, index) => hole(index + 15, 3, 4)),
+    ];
+
+    const computation = computeRound(settings, holes);
+    const p1 = computation.pointTotals.find((player) => player.playerId === "p1")!;
+    const p2 = computation.pointTotals.find((player) => player.playerId === "p2")!;
+
+    expect(p1.nassauFrontAmount).toBe(1);
+    expect(p1.nassauBackAmount).toBe(-1);
+    expect(p1.nassauOverallAmount).toBe(0);
+    expect(p1.nassauAmount).toBe(0);
+    expect(p2.nassauFrontAmount).toBe(-1);
+    expect(p2.nassauBackAmount).toBe(1);
+    expect(p2.nassauOverallAmount).toBe(0);
+    // The front and back bets offset in the combined pairwise settlement; the segment
+    // amounts above still show each independent result.
+    expect(computation.payouts).toHaveLength(0);
+    assertZeroSum(computation, players);
+  });
+
+  it("uses net scores and leaves tied matches as pushes without payouts", () => {
+    const players = makePlayers(2, [18, 0]);
+    const settings = settingsFor(players, ["nassau"]);
+    const holes = [
+      // p1's extra handicap stroke makes every hole a net tie, despite the gross scores.
+      ...Array.from({ length: 18 }, (_, index) => hole(index + 1, 5, 4)),
+    ];
+
+    const computation = computeRound(settings, holes);
+    expect(computation.pointTotals.every((player) => player.nassauAmount === 0)).toBe(true);
+    expect(computation.payouts).toHaveLength(0);
+    assertZeroSum(computation, players);
+  });
+
+  it("settles every player pair independently in a multi-player Nassau", () => {
+    const players = makePlayers(3);
+    const settings = settingsFor(players, ["nassau"]);
+    const holes = Array.from({ length: 18 }, (_, index) => ({
+      hole: index + 1,
+      scores: [
+        { playerId: "p1", strokes: 3 },
+        { playerId: "p2", strokes: 4 },
+        { playerId: "p3", strokes: 5 },
+      ],
+      putts: [],
+      wolfPartnerIds: [],
+      wolfOverridePlayerId: null,
+      wolfManualResult: null,
+      dots: [],
+      winnerPlayerId: null,
+      snakeHolderPlayerId: null,
+    }));
+
+    const computation = computeRound(settings, holes);
+    const p1 = computation.pointTotals.find((player) => player.playerId === "p1")!;
+    const p2 = computation.pointTotals.find((player) => player.playerId === "p2")!;
+    const p3 = computation.pointTotals.find((player) => player.playerId === "p3")!;
+    expect(p1.nassauAmount).toBe(6);
+    expect(p2.nassauAmount).toBe(0);
+    expect(p3.nassauAmount).toBe(-6);
+    expect(computation.payouts).toHaveLength(3);
+    expect(computation.payouts.every((payout) => payout.amount === 3)).toBe(true);
+    assertZeroSum(computation, players);
+  });
+});

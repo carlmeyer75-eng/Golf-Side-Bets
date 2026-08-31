@@ -54,7 +54,7 @@ const ALL_GAME_TYPES: { value: GameType; label: string; blurb: string }[] = [
   { value: 'wolf', label: 'Wolf', blurb: 'Rotating captain picks a partner or goes it alone' },
   { value: 'snake', label: 'Snake', blurb: 'Whoever 3-putts holds it until someone worse comes along' },
   { value: 'dots', label: 'Dots', blurb: 'Greenies, sandies, birdies and more, worth points' },
-  { value: 'nassau', label: 'Nassau', blurb: 'Simple hole-by-hole winner takes the stake' },
+  { value: 'nassau', label: 'Nassau', blurb: 'Match play with separate front, back, and overall bets' },
 ];
 
 const formatDate = (value?: string) =>
@@ -933,7 +933,10 @@ function LedgerPanel({ settlement, players, gameTypes, loading }: { settlement?:
                     {hasWolf ? <th>Wolf</th> : null}
                     {hasDots ? <th>Dots</th> : null}
                     {hasSnake ? <th>Snake</th> : null}
-                    {hasNassau ? <th>Nassau</th> : null}
+                    {hasNassau ? <th>Nassau F</th> : null}
+                    {hasNassau ? <th>Nassau B</th> : null}
+                    {hasNassau ? <th>Nassau O</th> : null}
+                    {hasNassau ? <th>Nassau total</th> : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -943,6 +946,9 @@ function LedgerPanel({ settlement, players, gameTypes, loading }: { settlement?:
                       {hasWolf ? <td>{formatPoints(row.wolfPoints)}</td> : null}
                       {hasDots ? <td>{formatPoints(row.dotsPoints)}</td> : null}
                       {hasSnake ? <td>{formatPoints(row.snakePoints)}</td> : null}
+                      {hasNassau ? <td>{formatMoney(row.nassauFrontAmount)}</td> : null}
+                      {hasNassau ? <td>{formatMoney(row.nassauBackAmount)}</td> : null}
+                      {hasNassau ? <td>{formatMoney(row.nassauOverallAmount)}</td> : null}
                       {hasNassau ? <td>{formatMoney(row.nassauAmount)}</td> : null}
                     </tr>
                   ))}

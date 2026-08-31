@@ -269,6 +269,9 @@ export interface PlayerPoints {
   wolfPoints: number;
   dotsPoints: number;
   snakePoints: number;
+  nassauFrontAmount: number;
+  nassauBackAmount: number;
+  nassauOverallAmount: number;
   nassauAmount: number;
 }
 

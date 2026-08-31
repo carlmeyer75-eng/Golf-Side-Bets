@@ -1,6 +1,6 @@
-// Pure scoring/settlement functions for Wolf, Snake, and Dots side bets, ported from the
-// reference "Clubhouse Ledger" rules (handicap-aware net scoring, gross-wins Wolf payouts,
-// putts-derived Snake, and manual/derived Dots) plus the project's existing simplified Nassau.
+// Pure scoring/settlement functions for Wolf, Snake, Dots, and Nassau side bets, ported from
+// the reference "Clubhouse Ledger" rules (handicap-aware net scoring, gross-wins Wolf payouts,
+// putts-derived Snake, manual/derived Dots, and pairwise Nassau match play).
 
 export type Player = {
   id: string;
@@ -76,6 +76,9 @@ export type PlayerPoints = {
   wolfPoints: number;
   dotsPoints: number;
   snakePoints: number;
+  nassauFrontAmount: number;
+  nassauBackAmount: number;
+  nassauOverallAmount: number;
   nassauAmount: number;
 };
 
@@ -259,41 +262,37 @@ export function computeRound(settings: RoundSettings, holes: HoleRow[]): RoundCo
     }
   }
 
-  // ---- Nassau: existing simplified per-hole winner-take-all, unchanged algorithm ----
-  const nassauTotals = new Map(playerIds.map((id) => [id, 0]));
+  // ---- Nassau: standard pairwise match play ----
+  // Each Nassau is three independent bets: front nine, back nine, and overall. For every
+  // segment, each player is matched against every other player, with one stake changing hands
+  // only when the match is decided. A hole is won by the lower net score; tied holes are halved
+  // and do not affect the segment result. We keep the segment totals separately for the ledger,
+  // while nassauAmount remains the backward-compatible sum of all three bets.
+  const nassauFrontTotals = new Map(playerIds.map((id) => [id, 0]));
+  const nassauBackTotals = new Map(playerIds.map((id) => [id, 0]));
+  const nassauOverallTotals = new Map(playerIds.map((id) => [id, 0]));
+  const nassauPairCents = new Map<string, number>();
+
   if (nassauEnabled) {
-    for (const holeRow of sortedHoles) {
-      const winnerId =
-        holeRow.winnerPlayerId ?? holeRow.scores.slice().sort((a, b) => a.strokes - b.strokes)[0]?.playerId;
-      if (!winnerId || !byId.has(winnerId)) continue;
-      const perGame = settings.stake * (players.length - 1);
-      for (const player of players) {
-        nassauTotals.set(
-          player.id,
-          (nassauTotals.get(player.id) ?? 0) + (player.id === winnerId ? perGame : -settings.stake),
-        );
-      }
-    }
+    settleNassauSegment(nassauFrontTotals, nassauPairCents, players, sortedHoles, 1, 9, byId, settings);
+    settleNassauSegment(nassauBackTotals, nassauPairCents, players, sortedHoles, 10, 18, byId, settings);
+    settleNassauSegment(nassauOverallTotals, nassauPairCents, players, sortedHoles, 1, 18, byId, settings);
   }
 
-  // ---- Gross pairwise settlement ----
-  // Each player's raw total (Wolf + Snake + Dots points converted to dollars, plus Nassau
-  // dollars) is a "gross" figure: Wolf/Snake/Dots only ever add points (winners bank, losers
-  // bank zero — never negative), so nothing here is pre-netted or mean-centered. Every unique
-  // pair of players then settles head-to-head: whoever has the smaller total owes the other the
-  // exact gap. This mirrors the reference app's pairwise gap model rather than simplifying into
-  // a minimal set of transactions.
+  // ---- Pairwise settlement ----
+  // Wolf/Snake/Dots are gross point totals, so each pair settles the gap between their totals.
+  // Nassau is already calculated head-to-head and is added directly to that same pair's gap;
+  // putting its signed player balances through the gross-gap model would double the stake.
   const totalCents = new Map(
     playerIds.map((id) => {
       const pointsDollars =
         ((wolfTotals.get(id) ?? 0) + (dotsTotals.get(id) ?? 0) + (snakeTotals.get(id) ?? 0)) *
         settings.dollarPerPoint;
-      const total = pointsDollars + (nassauTotals.get(id) ?? 0);
-      return [id, Math.round(total * 100)];
+      return [id, Math.round(pointsDollars * 100)];
     }),
   );
 
-  const payouts = pairwisePayouts(players, totalCents);
+  const payouts = pairwisePayouts(players, totalCents, nassauPairCents);
 
   // A player's displayed balance is simply their net position across every pairwise
   // settlement (received minus paid) — since it's summed from the same integer cents used to
@@ -317,24 +316,92 @@ export function computeRound(settings: RoundSettings, holes: HoleRow[]): RoundCo
     wolfPoints: round2(wolfTotals.get(player.id) ?? 0),
     dotsPoints: round2(dotsTotals.get(player.id) ?? 0),
     snakePoints: round2(snakeTotals.get(player.id) ?? 0),
-    nassauAmount: round2(nassauTotals.get(player.id) ?? 0),
+    nassauFrontAmount: round2(nassauFrontTotals.get(player.id) ?? 0),
+    nassauBackAmount: round2(nassauBackTotals.get(player.id) ?? 0),
+    nassauOverallAmount: round2(nassauOverallTotals.get(player.id) ?? 0),
+    nassauAmount: round2(
+      (nassauFrontTotals.get(player.id) ?? 0) +
+        (nassauBackTotals.get(player.id) ?? 0) +
+        (nassauOverallTotals.get(player.id) ?? 0),
+    ),
   }));
 
   return { perHole, balances, payouts, pointTotals, snakeHolderPlayerId: snakeHolder };
 }
 
+function settleNassauSegment(
+  totals: Map<string, number>,
+  pairCents: Map<string, number>,
+  players: Player[],
+  holes: HoleRow[],
+  firstHole: number,
+  lastHole: number,
+  byId: Map<string, Player>,
+  settings: RoundSettings,
+): void {
+  const segmentHoles = holes.filter((hole) => hole.hole >= firstHole && hole.hole <= lastHole);
+
+  for (let i = 0; i < players.length; i += 1) {
+    for (let j = i + 1; j < players.length; j += 1) {
+      const playerA = players[i];
+      const playerB = players[j];
+      let aHolesWon = 0;
+      let bHolesWon = 0;
+
+      for (const hole of segmentHoles) {
+        const scoreA = hole.scores.find((score) => score.playerId === playerA.id);
+        const scoreB = hole.scores.find((score) => score.playerId === playerB.id);
+        if (!scoreA || !scoreB) continue;
+
+        // Keep the existing optional hole winner as a manual override for recorded rounds. When
+        // it is absent, Nassau uses handicap-aware net match-play scoring.
+        if (hole.winnerPlayerId === playerA.id) {
+          aHolesWon += 1;
+          continue;
+        }
+        if (hole.winnerPlayerId === playerB.id) {
+          bHolesWon += 1;
+          continue;
+        }
+
+        const strokeIndex = settings.holeStrokeIndex[hole.hole - 1] ?? hole.hole;
+        const aNet = netScore(byId.get(playerA.id)!, scoreA.strokes, strokeIndex);
+        const bNet = netScore(byId.get(playerB.id)!, scoreB.strokes, strokeIndex);
+        if (aNet < bNet) aHolesWon += 1;
+        else if (bNet < aNet) bHolesWon += 1;
+      }
+
+      if (aHolesWon === bHolesWon) continue;
+      const winnerId = aHolesWon > bHolesWon ? playerA.id : playerB.id;
+      const loserId = winnerId === playerA.id ? playerB.id : playerA.id;
+      totals.set(winnerId, (totals.get(winnerId) ?? 0) + settings.stake);
+      totals.set(loserId, (totals.get(loserId) ?? 0) - settings.stake);
+      const key = `${playerA.id}:${playerB.id}`;
+      const signedStakeCents = Math.round(settings.stake * 100) * (winnerId === playerA.id ? 1 : -1);
+      pairCents.set(key, (pairCents.get(key) ?? 0) + signedStakeCents);
+    }
+  }
+}
+
 /**
- * Settles every unique pair of players head-to-head: whoever has the smaller total (in integer
- * cents) owes the other the exact gap. Unlike a minimal-transaction debt simplification, this
- * produces a payout for every pair with a nonzero gap, matching the reference app's model.
+ * Settles every unique pair head-to-head using their gross points gap plus that pair's direct
+ * Nassau result. Unlike a minimal-transaction debt simplification, this produces a payout for
+ * every pair with a nonzero combined gap, matching the reference app's pairwise model.
  */
-function pairwisePayouts(players: Player[], totalCents: Map<string, number>): Payout[] {
+function pairwisePayouts(
+  players: Player[],
+  totalCents: Map<string, number>,
+  nassauPairCents: Map<string, number>,
+): Payout[] {
   const payouts: Payout[] = [];
   for (let i = 0; i < players.length; i += 1) {
     for (let j = i + 1; j < players.length; j += 1) {
       const a = players[i];
       const b = players[j];
-      const gap = (totalCents.get(a.id) ?? 0) - (totalCents.get(b.id) ?? 0);
+      const gap =
+        (totalCents.get(a.id) ?? 0) -
+        (totalCents.get(b.id) ?? 0) +
+        (nassauPairCents.get(`${a.id}:${b.id}`) ?? 0);
       if (gap === 0) continue;
       const [winner, loser] = gap > 0 ? [a, b] : [b, a];
       payouts.push({
