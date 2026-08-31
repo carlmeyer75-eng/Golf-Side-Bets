@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const SIX_MEGABYTES = 6 * 1024 * 1024;
+const LOW_CONFIDENCE_THRESHOLD = 0.75;
 const SUPPORTED_MIME_TYPES = new Set([
   "application/pdf",
   "image/jpeg",
@@ -8,17 +9,28 @@ const SUPPORTED_MIME_TYPES = new Set([
   "image/webp",
 ]);
 
+const extractedNumber = z.preprocess((value) => {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  if (typeof value === "string" && value.trim()) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : undefined;
+  }
+  return undefined;
+}, z.number().optional());
+
 const extractedHoleSchema = z.object({
-  hole: z.number().optional(),
-  par: z.number().optional(),
-  strokeIndex: z.number().optional(),
+  hole: extractedNumber,
+  par: extractedNumber,
+  strokeIndex: extractedNumber,
   uncertain: z.boolean().optional(),
 });
 
 const extractedScorecardSchema = z.object({
   name: z.string().optional(),
   location: z.string().optional(),
-  confidence: z.number().optional(),
+  confidence: extractedNumber,
   warnings: z.array(z.string()).optional(),
   holes: z.array(extractedHoleSchema).optional(),
 });
@@ -60,19 +72,26 @@ export function decodeScorecardData(data: string, mimeType: string): string {
   }
 
   const matchesMimeType =
-    (mimeType === "application/pdf" && bytes.subarray(0, 5).toString() === "%PDF-") ||
+    (mimeType === "application/pdf" &&
+      bytes.subarray(0, 5).toString() === "%PDF-") ||
     (mimeType === "image/jpeg" &&
       bytes[0] === 0xff &&
       bytes[1] === 0xd8 &&
       bytes[2] === 0xff) ||
     (mimeType === "image/png" &&
-      bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) ||
+      bytes
+        .subarray(0, 8)
+        .equals(
+          Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+        )) ||
     (mimeType === "image/webp" &&
       bytes.subarray(0, 4).toString() === "RIFF" &&
       bytes.subarray(8, 12).toString() === "WEBP");
 
   if (!matchesMimeType) {
-    throw new Error("The uploaded file content does not match its PDF or image type.");
+    throw new Error(
+      "The uploaded file content does not match its PDF or image type.",
+    );
   }
 
   return base64;
@@ -84,9 +103,20 @@ export function normalizeExtractedScorecard(
 ): ScorecardDraft {
   const parsed = extractedScorecardSchema.parse(raw);
   const warnings = [...(parsed.warnings ?? [])];
+  if (
+    typeof parsed.confidence === "number" &&
+    parsed.confidence < LOW_CONFIDENCE_THRESHOLD
+  ) {
+    warnings.push(
+      "This scorecard was read with low confidence; review every suggested value before saving.",
+    );
+  }
   const byHole = new Map(
     (parsed.holes ?? [])
-      .filter((hole) => Number.isInteger(hole.hole) && hole.hole! >= 1 && hole.hole! <= 18)
+      .filter(
+        (hole) =>
+          Number.isInteger(hole.hole) && hole.hole! >= 1 && hole.hole! <= 18,
+      )
       .map((hole) => [hole.hole!, hole]),
   );
 
@@ -95,7 +125,9 @@ export function normalizeExtractedScorecard(
     const holeNumber = index + 1;
     const extracted = byHole.get(holeNumber);
     const validPar =
-      Number.isInteger(extracted?.par) && extracted!.par! >= 3 && extracted!.par! <= 6;
+      Number.isInteger(extracted?.par) &&
+      extracted!.par! >= 3 &&
+      extracted!.par! <= 6;
     const validStrokeIndex =
       Number.isInteger(extracted?.strokeIndex) &&
       extracted!.strokeIndex! >= 1 &&
@@ -103,12 +135,18 @@ export function normalizeExtractedScorecard(
       !usedStrokeIndexes.has(extracted!.strokeIndex!);
 
     if (!extracted) {
-      warnings.push(`Hole ${holeNumber} was not found; review the suggested values.`);
+      warnings.push(
+        `Hole ${holeNumber} was not found; review the suggested values.`,
+      );
     } else if (extracted.uncertain) {
-      warnings.push(`Hole ${holeNumber} was marked uncertain; verify par and handicap.`);
+      warnings.push(
+        `Hole ${holeNumber} was marked uncertain; verify par and handicap.`,
+      );
     }
     if (!validPar) {
-      warnings.push(`Hole ${holeNumber} par could not be read; defaulted to 4.`);
+      warnings.push(
+        `Hole ${holeNumber} par could not be read; defaulted to 4.`,
+      );
     }
 
     if (validStrokeIndex) {
@@ -126,9 +164,10 @@ export function normalizeExtractedScorecard(
     };
   });
 
-  const availableStrokeIndexes = Array.from({ length: 18 }, (_, index) => index + 1).filter(
-    (strokeIndex) => !usedStrokeIndexes.has(strokeIndex),
-  );
+  const availableStrokeIndexes = Array.from(
+    { length: 18 },
+    (_, index) => index + 1,
+  ).filter((strokeIndex) => !usedStrokeIndexes.has(strokeIndex));
   let availableIndex = 0;
   for (const hole of holes) {
     if (!hole.strokeIndex) {
@@ -169,8 +208,7 @@ export async function extractScorecard(
         role: "user",
         parts: [
           {
-            text:
-              "Read this golf scorecard. Return JSON only with: name (course name), location, confidence from 0 to 1, warnings, and holes. Holes must contain hole, par, strokeIndex for all visible holes. strokeIndex means handicap/SI and must preserve the number printed on the card. Mark a hole uncertain when any value is unclear. Never invent a course name or printed value; omit uncertain values instead.",
+            text: "Read this golf scorecard. Return JSON only with: name (course name), location, confidence from 0 to 1, warnings, and holes. Holes must contain hole, par, strokeIndex for all visible holes. strokeIndex means handicap/SI and must preserve the number printed on the card. Mark a hole uncertain when any value is unclear. Never invent a course name or printed value; omit uncertain values instead.",
           },
           { inlineData: { data: base64, mimeType } },
         ],

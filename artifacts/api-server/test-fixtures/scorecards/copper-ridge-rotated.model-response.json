@@ -1,0 +1,37 @@
+{
+  "sourceSha256": "b834752d840528563f2b98eca705dd2630fb106ff54561115c980c7cc7ab2a5c",
+  "response": {
+    "name": "Copper Ridge Golf Club",
+    "location": "Bend, Oregon",
+    "confidence": 0.93,
+    "warnings": ["The card is rotated; verify the extracted rows."],
+    "holes": [
+      { "hole": 1, "par": 4, "strokeIndex": 7 },
+      { "hole": 2, "par": 4, "strokeIndex": 15 },
+      { "hole": 3, "par": 3, "strokeIndex": 3 },
+      { "hole": 4, "par": 5, "strokeIndex": 1 },
+      { "hole": 5, "par": 4, "strokeIndex": 11 },
+      { "hole": 6, "par": 4, "strokeIndex": 5 },
+      { "hole": 7, "par": 3, "strokeIndex": 17 },
+      { "hole": 8, "par": 5, "strokeIndex": 9 },
+      { "hole": 9, "par": 4, "strokeIndex": 13 },
+      { "hole": 10, "par": 4, "strokeIndex": 2 },
+      { "hole": 11, "par": 3, "strokeIndex": 16 },
+      { "hole": 12, "par": 4, "strokeIndex": 8 },
+      { "hole": 13, "par": 5, "strokeIndex": 6 },
+      { "hole": 14, "par": 4, "strokeIndex": 12 },
+      { "hole": 15, "par": 4, "strokeIndex": 4 },
+      { "hole": 16, "par": 3, "strokeIndex": 18 },
+      { "hole": 17, "par": 5, "strokeIndex": 10 },
+      { "hole": 18, "par": 4, "strokeIndex": 14 }
+    ]
+  },
+  "expected": {
+    "name": "copper ridge golf club",
+    "pars": [4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 3, 4, 5, 4, 4, 3, 5, 4],
+    "strokeIndexes": [
+      7, 15, 3, 1, 11, 5, 17, 9, 13, 2, 16, 8, 6, 12, 4, 18, 10, 14
+    ],
+    "warningFragments": ["rotated"]
+  }
+}
