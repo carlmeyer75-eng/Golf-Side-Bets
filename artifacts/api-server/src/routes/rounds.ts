@@ -73,6 +73,17 @@ function normalizePlayers(players: Partial<PlayerRecord>[] | null | undefined): 
   }));
 }
 
+function normalizeDotPoints(dotPoints: Partial<DotPoints> | null | undefined): DotPoints {
+  return {
+    ...DEFAULT_DOT_POINTS,
+    ...(dotPoints ?? {}),
+  };
+}
+
+function normalizeHoleValues(values: number[] | null | undefined, defaults: number[]): number[] {
+  return Array.from({ length: 18 }, (_, index) => values?.[index] ?? defaults[index]);
+}
+
 function toRoundSettings(round: typeof roundsTable.$inferSelect): RoundSettings {
   return {
     players: normalizePlayers(round.players as PlayerRecord[]),
@@ -81,9 +92,9 @@ function toRoundSettings(round: typeof roundsTable.$inferSelect): RoundSettings 
     dollarPerPoint: Number(round.dollarPerPoint),
     wolfUnit: Number(round.wolfUnit),
     snakeStake: Number(round.snakeStake),
-    dotPoints: round.dotPoints as DotPoints,
-    holePars: round.holePars as number[],
-    holeStrokeIndex: round.holeStrokeIndex as number[],
+    dotPoints: normalizeDotPoints(round.dotPoints as Partial<DotPoints> | null | undefined),
+    holePars: normalizeHoleValues(round.holePars as number[] | null | undefined, DEFAULT_HOLE_PARS),
+    holeStrokeIndex: normalizeHoleValues(round.holeStrokeIndex as number[] | null | undefined, DEFAULT_HOLE_STROKE_INDEX),
   };
 }
 

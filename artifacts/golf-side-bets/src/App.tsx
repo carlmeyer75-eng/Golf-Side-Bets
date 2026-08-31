@@ -38,8 +38,10 @@ import type {
   HoleResult,
   HoleResultWolfResult,
   Player,
+  DotPoints,
   Round,
   RoundDetail,
+  RoundUpdate,
   Settlement,
 } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -76,6 +78,24 @@ const getInitials = (name: string) =>
     .toUpperCase();
 
 const gameLabel = (game: GameType) => ALL_GAME_TYPES.find((item) => item.value === game)?.label ?? game;
+
+const DEFAULT_DOT_POINTS: DotPoints = {
+  greenie: 1,
+  sandy: 1,
+  birdie: 1,
+  eagle: 2,
+  poley: 1,
+  threeputt: 1,
+};
+const DOT_POINT_FIELDS: { key: keyof DotPoints; label: string }[] = [
+  { key: 'greenie', label: 'Greenie' },
+  { key: 'sandy', label: 'Sandy' },
+  { key: 'birdie', label: 'Birdie' },
+  { key: 'eagle', label: 'Eagle' },
+  { key: 'poley', label: 'Poley' },
+  { key: 'threeputt', label: '3-putt' },
+];
+const DEFAULT_HOLE_PARS = Array.from({ length: 18 }, () => 4);
 
 function Brand() {
   return (
@@ -335,6 +355,12 @@ function NewRound() {
   const [course, setCourse] = useState('');
   const [playedAt, setPlayedAt] = useState(new Date().toISOString().slice(0, 10));
   const [stake, setStake] = useState('1');
+  const [wolfUnit, setWolfUnit] = useState('1');
+  const [snakeStake, setSnakeStake] = useState('1');
+  const [dotPoints, setDotPoints] = useState<Record<keyof DotPoints, string>>(
+    Object.fromEntries(DOT_POINT_FIELDS.map(({ key }) => [key, String(DEFAULT_DOT_POINTS[key])])) as Record<keyof DotPoints, string>,
+  );
+  const [holePars, setHolePars] = useState<string[]>(DEFAULT_HOLE_PARS.map(String));
   const [gameTypes, setGameTypes] = useState<GameType[]>(['wolf', 'snake', 'dots']);
   const [players, setPlayers] = useState<DraftPlayer[]>([
     { name: '', handicap: '' },
@@ -356,11 +382,23 @@ function NewRound() {
       current.includes(game) ? current.filter((item) => item !== game) : [...current, game],
     );
   };
+  const changeDotPoint = (key: keyof DotPoints, value: string) => {
+    setDotPoints((current) => ({ ...current, [key]: value }));
+  };
+  const changeHolePar = (hole: number, value: string) => {
+    setHolePars((current) => current.map((par, index) => (index === hole - 1 ? value : par)));
+  };
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const cleanPlayers = players.filter((player) => player.name.trim());
-    if (!name.trim() || !course.trim() || cleanPlayers.length < 2 || gameTypes.length === 0 || Number(stake) <= 0) {
-      setFormError('Add a course, two or more players, a game, and a stake to tee off.');
+    const parsAreValid = holePars.length === 18 && holePars.every((par) => Number(par) >= 3 && Number(par) <= 6);
+    const pointValuesAreValid =
+      Number(stake) > 0 &&
+      Number(wolfUnit) > 0 &&
+      Number(snakeStake) >= 0 &&
+      DOT_POINT_FIELDS.every(({ key }) => Number(dotPoints[key]) >= 0);
+    if (!name.trim() || !course.trim() || cleanPlayers.length < 2 || gameTypes.length === 0 || !parsAreValid || !pointValuesAreValid) {
+      setFormError('Add the round details, valid point values, and a par from 3–6 for every hole.');
       return;
     }
     setFormError('');
@@ -373,6 +411,17 @@ function NewRound() {
           gameTypes,
           stake: Number(stake),
           dollarPerPoint: Number(stake),
+          wolfUnit: Number(wolfUnit),
+          snakeStake: Number(snakeStake),
+          dotPoints: {
+            greenie: Number(dotPoints.greenie),
+            sandy: Number(dotPoints.sandy),
+            birdie: Number(dotPoints.birdie),
+            eagle: Number(dotPoints.eagle),
+            poley: Number(dotPoints.poley),
+            threeputt: Number(dotPoints.threeputt),
+          },
+          holePars: holePars.map(Number),
           players: cleanPlayers.map((player) => ({
             name: player.name.trim(),
             handicap: player.handicap.trim() ? Number(player.handicap) : 0,
@@ -428,13 +477,67 @@ function NewRound() {
             <span className="field-hint">Mix and match — run any combination at once.</span>
           </div>
           <div className="field">
-            <label htmlFor="stake">Stake per point / bet ($)</label>
+            <label htmlFor="stake">Base value per point / bet ($)</label>
             <input id="stake" type="number" min="0.01" step="0.01" value={stake} onChange={(event) => setStake(event.target.value)} data-testid="input-stake" />
-            <span className="field-hint">Used for Nassau's per-hole bet and the $ value of every Wolf/Snake/Dots point.</span>
+            <span className="field-hint">Nassau uses this value per bet. Wolf, Snake, and Dots use the point values below.</span>
           </div>
           <div className="field">
             <label>Players <span style={{ color: 'hsl(var(--muted-foreground))', fontWeight: 400 }}>(2–6)</span></label>
             <span className="field-hint">Add a handicap for accurate net Wolf scoring — 0 if you don't know it.</span>
+          </div>
+          <div className="field full">
+            <div className="setup-section">
+              <div className="setup-section-heading">
+                <div>
+                  <div className="eyebrow">Side bet values</div>
+                  <strong>Set each game’s points independently</strong>
+                </div>
+                <span className="field-hint">1 point = {formatMoney(Number(stake) || 0)}</span>
+              </div>
+              <div className="point-settings-grid">
+                <div className="field">
+                  <label htmlFor="wolf-unit">Wolf points</label>
+                  <input id="wolf-unit" type="number" min="0.01" step="0.01" value={wolfUnit} onChange={(event) => setWolfUnit(event.target.value)} data-testid="input-wolf-points" />
+                  <span className="field-hint">Points paid for a standard Wolf win.</span>
+                </div>
+                <div className="field">
+                  <label htmlFor="snake-stake">Snake points</label>
+                  <input id="snake-stake" type="number" min="0" step="0.5" value={snakeStake} onChange={(event) => setSnakeStake(event.target.value)} data-testid="input-snake-points" />
+                  <span className="field-hint">Points each player pays the Snake holder.</span>
+                </div>
+                <div className="field full">
+                  <label>Dots points</label>
+                  <div className="dot-point-settings">
+                    {DOT_POINT_FIELDS.map(({ key, label }) => (
+                      <label className="compact-number" key={key} htmlFor={`dot-point-${key}`}>
+                        <span>{label}</span>
+                        <input id={`dot-point-${key}`} type="number" min="0" step="0.5" value={dotPoints[key]} onChange={(event) => changeDotPoint(key, event.target.value)} data-testid={`input-dots-points-${key}`} />
+                      </label>
+                    ))}
+                  </div>
+                  <span className="field-hint">Choose how many points each Dots event is worth.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="field full">
+            <div className="setup-section">
+              <div className="setup-section-heading">
+                <div>
+                  <div className="eyebrow">Course setup</div>
+                  <strong>Confirm the par for every hole</strong>
+                </div>
+                <span className="field-hint">Used to identify birdies, eagles, and greenies.</span>
+              </div>
+              <div className="par-grid" data-testid="grid-hole-pars">
+                {holePars.map((par, index) => (
+                  <label className="compact-number" key={index} htmlFor={`hole-par-${index + 1}`}>
+                    <span>Hole {index + 1}</span>
+                    <input id={`hole-par-${index + 1}`} type="number" min="3" max="6" step="1" value={par} onChange={(event) => changeHolePar(index + 1, event.target.value)} data-testid={`input-hole-par-${index + 1}`} />
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
           <div className="field full">
             <div className="players-list">
@@ -473,6 +576,108 @@ function NewRound() {
         </div>
       </form>
     </main>
+  );
+}
+
+function RoundSetupEditor({ round, onClose, onSaved }: { round: Round; onClose: () => void; onSaved: () => void }) {
+  const queryClient = useQueryClient();
+  const updateRound = useUpdateRound();
+  const [wolfUnit, setWolfUnit] = useState(String(round.wolfUnit));
+  const [snakeStake, setSnakeStake] = useState(String(round.snakeStake));
+  const [dotPoints, setDotPoints] = useState<DotPoints>(round.dotPoints);
+  const [holePars, setHolePars] = useState<string[]>(round.holePars.map(String));
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    setWolfUnit(String(round.wolfUnit));
+    setSnakeStake(String(round.snakeStake));
+    setDotPoints(round.dotPoints);
+    setHolePars(round.holePars.map(String));
+  }, [round]);
+
+  const changeHolePar = (hole: number, value: string) => {
+    setHolePars((current) => current.map((par, index) => (index === hole - 1 ? value : par)));
+  };
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const parsAreValid = holePars.length === 18 && holePars.every((par) => Number(par) >= 3 && Number(par) <= 6);
+    const valuesAreValid = Number(wolfUnit) > 0 && Number(snakeStake) >= 0 && DOT_POINT_FIELDS.every(({ key }) => Number(dotPoints[key]) >= 0);
+    if (!parsAreValid || !valuesAreValid) {
+      setError('Use a Wolf value above 0, a Snake value of 0 or more, and pars from 3–6.');
+      return;
+    }
+    setError('');
+    const data: RoundUpdate = {
+      wolfUnit: Number(wolfUnit),
+      snakeStake: Number(snakeStake),
+      dotPoints,
+      holePars: holePars.map(Number),
+    };
+    updateRound.mutate(
+      { roundId: round.id, data },
+      {
+        onSuccess: () => {
+          void queryClient.invalidateQueries({ queryKey: getGetRoundQueryKey(round.id) });
+          void queryClient.invalidateQueries({ queryKey: getGetRoundSettlementQueryKey(round.id) });
+          void queryClient.invalidateQueries({ queryKey: getListRoundsQueryKey() });
+          void queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
+          onSaved();
+        },
+        onError: () => setError('The setup could not be saved. Check your connection and try again.'),
+      },
+    );
+  };
+
+  return (
+    <form className="card setup-editor" onSubmit={submit} data-testid="form-edit-round-settings">
+      <div className="setup-section-heading">
+        <div>
+          <div className="eyebrow">Round setup</div>
+          <strong>Update values before the next score</strong>
+        </div>
+        <span className="field-hint">Changes recalculate the ledger immediately.</span>
+      </div>
+      <div className="point-settings-grid">
+        <div className="field">
+          <label htmlFor="edit-wolf-points">Wolf points</label>
+          <input id="edit-wolf-points" type="number" min="0.01" step="0.01" value={wolfUnit} onChange={(event) => setWolfUnit(event.target.value)} data-testid="input-edit-wolf-points" />
+        </div>
+        <div className="field">
+          <label htmlFor="edit-snake-points">Snake points</label>
+          <input id="edit-snake-points" type="number" min="0" step="0.5" value={snakeStake} onChange={(event) => setSnakeStake(event.target.value)} data-testid="input-edit-snake-points" />
+        </div>
+        <div className="field full">
+          <label>Dots points</label>
+          <div className="dot-point-settings">
+            {DOT_POINT_FIELDS.map(({ key, label }) => (
+              <label className="compact-number" key={key} htmlFor={`edit-dot-point-${key}`}>
+                <span>{label}</span>
+                <input id={`edit-dot-point-${key}`} type="number" min="0" step="0.5" value={dotPoints[key]} onChange={(event) => setDotPoints((current) => ({ ...current, [key]: Number(event.target.value) }))} data-testid={`input-edit-dots-points-${key}`} />
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="field">
+        <label>Hole pars</label>
+        <div className="par-grid" data-testid="grid-edit-hole-pars">
+          {holePars.map((par, index) => (
+            <label className="compact-number" key={index} htmlFor={`edit-hole-par-${index + 1}`}>
+              <span>Hole {index + 1}</span>
+              <input id={`edit-hole-par-${index + 1}`} type="number" min="3" max="6" step="1" value={par} onChange={(event) => changeHolePar(index + 1, event.target.value)} data-testid={`input-edit-hole-par-${index + 1}`} />
+            </label>
+          ))}
+        </div>
+      </div>
+      {error ? <div className="error-state" style={{ padding: 11, textAlign: 'left', fontSize: 12 }} data-testid="text-settings-error">{error}</div> : null}
+      <div className="form-footer">
+        <span className="field-hint">Par changes affect future scoring and any Dots already recorded.</span>
+        <button type="button" className="button button-ghost" onClick={onClose} data-testid="button-cancel-round-settings">Cancel</button>
+        <button type="submit" className="button button-primary" disabled={updateRound.isPending} data-testid="button-save-round-settings">
+          {updateRound.isPending ? <LoaderCircle size={15} /> : <Check size={15} />} {updateRound.isPending ? 'Saving…' : 'Save setup'}
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -688,13 +893,43 @@ function Scorecard() {
         </div>
       </div>
 
+      {editing ? (
+        <RoundSetupEditor
+          round={round}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false);
+            setNotice('Round setup updated. The ledger has been recalculated.');
+          }}
+        />
+      ) : (
+        <section className="card round-settings-summary" aria-label="Active round setup" data-testid="panel-round-settings">
+          <div>
+            <div className="eyebrow">Active setup</div>
+            <strong>Stakes &amp; course</strong>
+          </div>
+          <div className="settings-summary-values">
+            {hasWolf ? <span><b>Wolf</b> {formatPoints(round.wolfUnit)} pt</span> : null}
+            {hasSnake ? <span><b>Snake</b> {formatPoints(round.snakeStake)} pt</span> : null}
+            {hasDots ? <span><b>Dots</b> {formatPoints(round.dotPoints.birdie)} pt birdie</span> : null}
+            <span><b>Base</b> {formatMoney(round.dollarPerPoint)} / pt</span>
+          </div>
+          <div className="par-summary">
+            <span className="eyebrow">Hole pars</span>
+            {round.holePars.map((par, index) => <span key={index} className={selectedHole === index + 1 ? 'active' : ''}>{index + 1} <b>{par}</b></span>)}
+          </div>
+        </section>
+      )}
+
       <div className="score-layout">
         <section className="card scorecard" aria-label="Round scorecard">
           <div className="score-head">
             <div>
               <div className="eyebrow">Hole by hole</div>
               <h1 className="display">Keep it honest.</h1>
-              <div style={{ fontSize: 12, color: 'hsl(var(--primary-foreground) / .58)' }}>{holes.length} of 18 holes recorded</div>
+              <div style={{ fontSize: 12, color: 'hsl(var(--primary-foreground) / .58)' }}>
+                {holes.length} of 18 holes recorded · Hole {selectedHole} par {round.holePars[selectedHole - 1] ?? 4}
+              </div>
             </div>
             <button className="button button-accent" onClick={changeStatus} disabled={isBusy} data-testid="button-toggle-round-status">
               {round.status === 'completed' ? <RefreshCw size={14} /> : <Trophy size={14} />}
