@@ -7,15 +7,26 @@
  */
 
 export * from './balance';
+export * from './course';
+export * from './courseHole';
+export * from './courseImportDraft';
+export * from './courseImportDraftSource';
+export * from './courseInput';
+export * from './courseInputSource';
+export * from './courseSource';
+export * from './courseUpdate';
 export * from './dashboardSummary';
 export * from './dotFlagsInput';
 export * from './dotPoints';
+export * from './externalCourse';
+export * from './externalCourseSearchResponse';
 export * from './gameType';
 export * from './healthStatus';
 export * from './holeResult';
 export * from './holeResultInput';
 export * from './holeResultInputWolfManualResult';
 export * from './holeResultWolfResult';
+export * from './listCoursesParams';
 export * from './payout';
 export * from './player';
 export * from './playerDots';
@@ -28,5 +39,8 @@ export * from './roundInput';
 export * from './roundStatus';
 export * from './roundUpdate';
 export * from './roundUpdateStatus';
+export * from './scorecardImportInput';
+export * from './scorecardImportInputMimeType';
 export * from './scoreInput';
+export * from './searchExternalCoursesParams';
 export * from './settlement';

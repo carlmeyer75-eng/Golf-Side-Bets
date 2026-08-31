@@ -824,3 +824,275 @@ export const GetDashboardSummaryResponse = zod.object({
 })
 
 
+/**
+ * @summary List saved golf courses
+ */
+export const ListCoursesQueryParams = zod.object({
+  "search": zod.coerce.string().optional()
+})
+
+export const listCoursesResponseHolesItemHoleMax = 18;
+
+export const listCoursesResponseHolesItemParMin = 3;
+export const listCoursesResponseHolesItemParMax = 6;
+
+export const listCoursesResponseHolesItemStrokeIndexMax = 18;
+
+export const listCoursesResponseHolesMin = 18;
+export const listCoursesResponseHolesMax = 18;
+
+
+
+export const ListCoursesResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "location": zod.string(),
+  "holes": zod.array(zod.object({
+  "hole": zod.number().min(1).max(listCoursesResponseHolesItemHoleMax),
+  "par": zod.number().min(listCoursesResponseHolesItemParMin).max(listCoursesResponseHolesItemParMax),
+  "strokeIndex": zod.number().min(1).max(listCoursesResponseHolesItemStrokeIndexMax)
+})).min(listCoursesResponseHolesMin).max(listCoursesResponseHolesMax),
+  "source": zod.enum(['manual', 'upload', 'external']),
+  "sourceDocumentName": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const ListCoursesResponse = zod.array(ListCoursesResponseItem)
+
+
+/**
+ * @summary Save a golf course layout
+ */
+
+export const createCourseBodyHolesItemHoleMax = 18;
+
+export const createCourseBodyHolesItemParMin = 3;
+export const createCourseBodyHolesItemParMax = 6;
+
+export const createCourseBodyHolesItemStrokeIndexMax = 18;
+
+export const createCourseBodyHolesMin = 18;
+export const createCourseBodyHolesMax = 18;
+
+
+
+export const CreateCourseBody = zod.object({
+  "name": zod.string().min(1),
+  "location": zod.string().optional(),
+  "holes": zod.array(zod.object({
+  "hole": zod.number().min(1).max(createCourseBodyHolesItemHoleMax),
+  "par": zod.number().min(createCourseBodyHolesItemParMin).max(createCourseBodyHolesItemParMax),
+  "strokeIndex": zod.number().min(1).max(createCourseBodyHolesItemStrokeIndexMax)
+})).min(createCourseBodyHolesMin).max(createCourseBodyHolesMax),
+  "source": zod.enum(['manual', 'upload', 'external']).optional(),
+  "sourceDocumentName": zod.string().nullish()
+})
+
+export const createCourseResponseHolesItemHoleMax = 18;
+
+export const createCourseResponseHolesItemParMin = 3;
+export const createCourseResponseHolesItemParMax = 6;
+
+export const createCourseResponseHolesItemStrokeIndexMax = 18;
+
+export const createCourseResponseHolesMin = 18;
+export const createCourseResponseHolesMax = 18;
+
+
+
+export const CreateCourseResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "location": zod.string(),
+  "holes": zod.array(zod.object({
+  "hole": zod.number().min(1).max(createCourseResponseHolesItemHoleMax),
+  "par": zod.number().min(createCourseResponseHolesItemParMin).max(createCourseResponseHolesItemParMax),
+  "strokeIndex": zod.number().min(1).max(createCourseResponseHolesItemStrokeIndexMax)
+})).min(createCourseResponseHolesMin).max(createCourseResponseHolesMax),
+  "source": zod.enum(['manual', 'upload', 'external']),
+  "sourceDocumentName": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Get a saved golf course
+ */
+export const GetCourseParams = zod.object({
+  "courseId": zod.coerce.number()
+})
+
+export const getCourseResponseHolesItemHoleMax = 18;
+
+export const getCourseResponseHolesItemParMin = 3;
+export const getCourseResponseHolesItemParMax = 6;
+
+export const getCourseResponseHolesItemStrokeIndexMax = 18;
+
+export const getCourseResponseHolesMin = 18;
+export const getCourseResponseHolesMax = 18;
+
+
+
+export const GetCourseResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "location": zod.string(),
+  "holes": zod.array(zod.object({
+  "hole": zod.number().min(1).max(getCourseResponseHolesItemHoleMax),
+  "par": zod.number().min(getCourseResponseHolesItemParMin).max(getCourseResponseHolesItemParMax),
+  "strokeIndex": zod.number().min(1).max(getCourseResponseHolesItemStrokeIndexMax)
+})).min(getCourseResponseHolesMin).max(getCourseResponseHolesMax),
+  "source": zod.enum(['manual', 'upload', 'external']),
+  "sourceDocumentName": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Update a saved golf course
+ */
+export const UpdateCourseParams = zod.object({
+  "courseId": zod.coerce.number()
+})
+
+
+export const updateCourseBodyHolesItemHoleMax = 18;
+
+export const updateCourseBodyHolesItemParMin = 3;
+export const updateCourseBodyHolesItemParMax = 6;
+
+export const updateCourseBodyHolesItemStrokeIndexMax = 18;
+
+export const updateCourseBodyHolesMin = 18;
+export const updateCourseBodyHolesMax = 18;
+
+
+
+export const UpdateCourseBody = zod.object({
+  "name": zod.string().min(1).optional(),
+  "location": zod.string().optional(),
+  "holes": zod.array(zod.object({
+  "hole": zod.number().min(1).max(updateCourseBodyHolesItemHoleMax),
+  "par": zod.number().min(updateCourseBodyHolesItemParMin).max(updateCourseBodyHolesItemParMax),
+  "strokeIndex": zod.number().min(1).max(updateCourseBodyHolesItemStrokeIndexMax)
+})).min(updateCourseBodyHolesMin).max(updateCourseBodyHolesMax).optional()
+})
+
+export const updateCourseResponseHolesItemHoleMax = 18;
+
+export const updateCourseResponseHolesItemParMin = 3;
+export const updateCourseResponseHolesItemParMax = 6;
+
+export const updateCourseResponseHolesItemStrokeIndexMax = 18;
+
+export const updateCourseResponseHolesMin = 18;
+export const updateCourseResponseHolesMax = 18;
+
+
+
+export const UpdateCourseResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "location": zod.string(),
+  "holes": zod.array(zod.object({
+  "hole": zod.number().min(1).max(updateCourseResponseHolesItemHoleMax),
+  "par": zod.number().min(updateCourseResponseHolesItemParMin).max(updateCourseResponseHolesItemParMax),
+  "strokeIndex": zod.number().min(1).max(updateCourseResponseHolesItemStrokeIndexMax)
+})).min(updateCourseResponseHolesMin).max(updateCourseResponseHolesMax),
+  "source": zod.enum(['manual', 'upload', 'external']),
+  "sourceDocumentName": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Delete a saved golf course
+ */
+export const DeleteCourseParams = zod.object({
+  "courseId": zod.coerce.number()
+})
+
+export const DeleteCourseResponse = zod.void()
+
+
+/**
+ * @summary Extract a course layout from a scorecard image or PDF
+ */
+
+
+
+
+export const ImportScorecardBody = zod.object({
+  "fileName": zod.string().min(1),
+  "mimeType": zod.enum(['application/pdf', 'image/jpeg', 'image/png', 'image/webp']),
+  "data": zod.string().min(1)
+})
+
+export const importScorecardResponseHolesItemHoleMax = 18;
+
+export const importScorecardResponseHolesItemParMin = 3;
+export const importScorecardResponseHolesItemParMax = 6;
+
+export const importScorecardResponseHolesItemStrokeIndexMax = 18;
+
+export const importScorecardResponseHolesMin = 18;
+export const importScorecardResponseHolesMax = 18;
+
+
+
+export const ImportScorecardResponse = zod.object({
+  "name": zod.string(),
+  "location": zod.string(),
+  "holes": zod.array(zod.object({
+  "hole": zod.number().min(1).max(importScorecardResponseHolesItemHoleMax),
+  "par": zod.number().min(importScorecardResponseHolesItemParMin).max(importScorecardResponseHolesItemParMax),
+  "strokeIndex": zod.number().min(1).max(importScorecardResponseHolesItemStrokeIndexMax)
+})).min(importScorecardResponseHolesMin).max(importScorecardResponseHolesMax),
+  "source": zod.enum(['upload']),
+  "sourceDocumentName": zod.string(),
+  "warnings": zod.array(zod.string()),
+  "confidence": zod.number().nullable()
+})
+
+
+/**
+ * @summary Search an external golf-course provider
+ */
+export const searchExternalCoursesQueryQueryMin = 2;
+
+
+
+export const SearchExternalCoursesQueryParams = zod.object({
+  "query": zod.coerce.string().min(searchExternalCoursesQueryQueryMin)
+})
+
+export const searchExternalCoursesResponseCoursesItemHolesItemHoleMax = 18;
+
+export const searchExternalCoursesResponseCoursesItemHolesItemParMin = 3;
+export const searchExternalCoursesResponseCoursesItemHolesItemParMax = 6;
+
+export const searchExternalCoursesResponseCoursesItemHolesItemStrokeIndexMax = 18;
+
+
+
+export const SearchExternalCoursesResponse = zod.object({
+  "available": zod.boolean(),
+  "provider": zod.string().nullable(),
+  "message": zod.string(),
+  "courses": zod.array(zod.object({
+  "externalId": zod.string(),
+  "name": zod.string(),
+  "location": zod.string(),
+  "holes": zod.array(zod.object({
+  "hole": zod.number().min(1).max(searchExternalCoursesResponseCoursesItemHolesItemHoleMax),
+  "par": zod.number().min(searchExternalCoursesResponseCoursesItemHolesItemParMin).max(searchExternalCoursesResponseCoursesItemHolesItemParMax),
+  "strokeIndex": zod.number().min(1).max(searchExternalCoursesResponseCoursesItemHolesItemStrokeIndexMax)
+}))
+}))
+})
+
+

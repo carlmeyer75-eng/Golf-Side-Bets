@@ -159,6 +159,8 @@ button { cursor: pointer; }
 .round-row { display:grid; grid-template-columns: minmax(180px,1.5fr) minmax(120px,1fr) 100px 120px 34px; align-items:center; gap:18px; padding:17px 20px; border-bottom:1px solid hsl(var(--border)); text-decoration:none; color:inherit; transition:background .18s ease, transform .18s ease; }
 .round-row:last-child { border-bottom:0; }
 .round-row:hover { background:hsl(var(--secondary)/.45); }
+.course-card { transition: transform .2s ease, box-shadow .2s ease; cursor: pointer; }
+.course-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: hsl(var(--primary)/.3); }
 .round-name { font-weight:700; font-size:14px; }
 .round-course { color:hsl(var(--muted-foreground)); font-size:12px; margin-top:3px; }
 .round-date,.round-stake { font:11px var(--app-font-mono); color:hsl(var(--muted-foreground)); }
@@ -294,7 +296,10 @@ button { cursor: pointer; }
   .mobile-menu a { color:hsl(var(--sidebar-foreground)/.65); padding:8px; }
   .mobile-menu a.active { color:hsl(var(--accent)); }
   .content-wrap { padding:27px 16px 48px; }
-  .topbar { margin-bottom:26px; align-items:center; }
+  .topbar { margin-bottom:26px; align-items:flex-start; flex-direction:column; }
+  .topbar > div { max-width:100%; }
+  .topbar > div:last-child { display:flex; flex-wrap:wrap; width:100%; }
+  .topbar > div:last-child .button { flex:1 1 auto; justify-content:center; }
   .topbar .button { padding:10px 12px; }
   .page-title { font-size:39px; }
   .stat-grid { grid-template-columns:1fr 1fr; gap:9px; }
@@ -308,7 +313,9 @@ button { cursor: pointer; }
   .round-row > :nth-child(3),.round-row > :nth-child(4) { display:none; }
   .form-grid { grid-template-columns:1fr; }
   .form-grid .full { grid-column:auto; }
-  .form-card { padding:20px 17px; }
+  .form-card,.form-grid,.field,.setup-section { min-width:0; }
+  .form-card { padding:20px 17px; width:100%; overflow:hidden; }
+  .form-footer { flex-wrap:wrap; }
   .point-settings-grid,.round-settings-summary { grid-template-columns:1fr; }
   .point-settings-grid .full,.par-summary { grid-column:auto; }
   .settings-summary-values { justify-content:flex-start; }

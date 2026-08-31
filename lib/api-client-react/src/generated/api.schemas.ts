@@ -297,3 +297,146 @@ export interface DashboardSummary {
   latestRound: Round | null;
 }
 
+export interface CourseHole {
+  /**
+     * @minimum 1
+     * @maximum 18
+     */
+  hole: number;
+  /**
+     * @minimum 3
+     * @maximum 6
+     */
+  par: number;
+  /**
+     * @minimum 1
+     * @maximum 18
+     */
+  strokeIndex: number;
+}
+
+export type CourseSource = typeof CourseSource[keyof typeof CourseSource];
+
+
+export const CourseSource = {
+  manual: 'manual',
+  upload: 'upload',
+  external: 'external',
+} as const;
+
+export interface Course {
+  id: number;
+  name: string;
+  location: string;
+  /**
+     * @minItems 18
+     * @maxItems 18
+     */
+  holes: CourseHole[];
+  source: CourseSource;
+  /** @nullable */
+  sourceDocumentName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CourseInputSource = typeof CourseInputSource[keyof typeof CourseInputSource];
+
+
+export const CourseInputSource = {
+  manual: 'manual',
+  upload: 'upload',
+  external: 'external',
+} as const;
+
+export interface CourseInput {
+  /** @minLength 1 */
+  name: string;
+  location?: string;
+  /**
+     * @minItems 18
+     * @maxItems 18
+     */
+  holes: CourseHole[];
+  source?: CourseInputSource;
+  /** @nullable */
+  sourceDocumentName?: string | null;
+}
+
+export interface CourseUpdate {
+  /** @minLength 1 */
+  name?: string;
+  location?: string;
+  /**
+     * @minItems 18
+     * @maxItems 18
+     */
+  holes?: CourseHole[];
+}
+
+export type ScorecardImportInputMimeType = typeof ScorecardImportInputMimeType[keyof typeof ScorecardImportInputMimeType];
+
+
+export const ScorecardImportInputMimeType = {
+  'application/pdf': 'application/pdf',
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'image/webp': 'image/webp',
+} as const;
+
+export interface ScorecardImportInput {
+  /** @minLength 1 */
+  fileName: string;
+  mimeType: ScorecardImportInputMimeType;
+  /** @minLength 1 */
+  data: string;
+}
+
+export type CourseImportDraftSource = typeof CourseImportDraftSource[keyof typeof CourseImportDraftSource];
+
+
+export const CourseImportDraftSource = {
+  upload: 'upload',
+} as const;
+
+export interface CourseImportDraft {
+  name: string;
+  location: string;
+  /**
+     * @minItems 18
+     * @maxItems 18
+     */
+  holes: CourseHole[];
+  source: CourseImportDraftSource;
+  sourceDocumentName: string;
+  warnings: string[];
+  /** @nullable */
+  confidence: number | null;
+}
+
+export interface ExternalCourse {
+  externalId: string;
+  name: string;
+  location: string;
+  holes: CourseHole[];
+}
+
+export interface ExternalCourseSearchResponse {
+  available: boolean;
+  /** @nullable */
+  provider: string | null;
+  message: string;
+  courses: ExternalCourse[];
+}
+
+export type ListCoursesParams = {
+search?: string;
+};
+
+export type SearchExternalCoursesParams = {
+/**
+ * @minLength 2
+ */
+query: string;
+};
+

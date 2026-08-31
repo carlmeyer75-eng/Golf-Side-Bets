@@ -10,6 +10,7 @@ import {
   Flag,
   LayoutDashboard,
   LoaderCircle,
+  Map,
   Plus,
   RefreshCw,
   Trash2,
@@ -18,6 +19,8 @@ import {
   X,
 } from 'lucide-react';
 import {
+  useListCourses,
+  getListCoursesQueryKey,
   getGetDashboardSummaryQueryKey,
   getGetRoundQueryKey,
   getGetRoundSettlementQueryKey,
@@ -48,6 +51,7 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
+import Courses from '@/pages/Courses';
 import { Link, Route, Switch, Router as WouterRouter, useLocation, useParams } from 'wouter';
 
 const queryClient = new QueryClient();
@@ -96,6 +100,7 @@ const DOT_POINT_FIELDS: { key: keyof DotPoints; label: string }[] = [
   { key: 'threeputt', label: '3-putt' },
 ];
 const DEFAULT_HOLE_PARS = Array.from({ length: 18 }, () => 4);
+const DEFAULT_HOLE_STROKE_INDEX = Array.from({ length: 18 }, (_, i) => i + 1);
 
 function Brand() {
   return (
@@ -126,6 +131,13 @@ function Shell({ children }: { children: ReactNode }) {
             <LayoutDashboard size={17} /> Dashboard
           </Link>
           <Link
+            href="/courses"
+            className={`nav-link ${location.startsWith('/courses') ? 'active' : ''}`}
+            data-testid="link-courses"
+          >
+            <Map size={17} /> Course library
+          </Link>
+          <Link
             href="/rounds/new"
             className={`nav-link ${location === '/rounds/new' ? 'active' : ''}`}
             data-testid="link-new-round"
@@ -152,6 +164,9 @@ function Shell({ children }: { children: ReactNode }) {
           <nav className="mobile-menu" aria-label="Mobile navigation">
             <Link href="/" className={location === '/' ? 'active' : ''} data-testid="link-mobile-dashboard">
               <LayoutDashboard size={18} />
+            </Link>
+            <Link href="/courses" className={location.startsWith('/courses') ? 'active' : ''} data-testid="link-mobile-courses">
+              <Map size={18} />
             </Link>
             <Link href="/rounds/new" className={location === '/rounds/new' ? 'active' : ''} data-testid="link-mobile-new-round">
               <Plus size={19} />
@@ -361,12 +376,15 @@ function NewRound() {
     Object.fromEntries(DOT_POINT_FIELDS.map(({ key }) => [key, String(DEFAULT_DOT_POINTS[key])])) as Record<keyof DotPoints, string>,
   );
   const [holePars, setHolePars] = useState<string[]>(DEFAULT_HOLE_PARS.map(String));
+  const [holeStrokeIndexes, setHoleStrokeIndexes] = useState<string[]>(DEFAULT_HOLE_STROKE_INDEX.map(String));
   const [gameTypes, setGameTypes] = useState<GameType[]>(['wolf', 'snake', 'dots']);
   const [players, setPlayers] = useState<DraftPlayer[]>([
     { name: '', handicap: '' },
     { name: '', handicap: '' },
   ]);
   const [formError, setFormError] = useState('');
+  
+  const coursesQuery = useListCourses({}, { query: { queryKey: getListCoursesQueryKey({}) } });
 
   const changePlayer = (index: number, field: keyof DraftPlayer, value: string) => {
     setPlayers((current) => current.map((player, playerIndex) => (playerIndex === index ? { ...player, [field]: value } : player)));
@@ -388,17 +406,31 @@ function NewRound() {
   const changeHolePar = (hole: number, value: string) => {
     setHolePars((current) => current.map((par, index) => (index === hole - 1 ? value : par)));
   };
+  const changeHoleStrokeIndex = (hole: number, value: string) => {
+    setHoleStrokeIndexes((current) => current.map((si, index) => (index === hole - 1 ? value : si)));
+  };
+  
+  const applySavedCourse = (courseId: number) => {
+    const saved = coursesQuery.data?.find(c => c.id === courseId);
+    if (saved) {
+      setCourse(saved.name);
+      setHolePars(saved.holes.map(h => String(h.par)));
+      setHoleStrokeIndexes(saved.holes.map(h => String(h.strokeIndex)));
+    }
+  };
+
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const cleanPlayers = players.filter((player) => player.name.trim());
     const parsAreValid = holePars.length === 18 && holePars.every((par) => Number(par) >= 3 && Number(par) <= 6);
+    const strokeIndexesAreValid = holeStrokeIndexes.length === 18 && holeStrokeIndexes.every((si) => Number(si) >= 1 && Number(si) <= 18);
     const pointValuesAreValid =
       Number(stake) > 0 &&
       Number(wolfUnit) > 0 &&
       Number(snakeStake) >= 0 &&
       DOT_POINT_FIELDS.every(({ key }) => Number(dotPoints[key]) >= 0);
-    if (!name.trim() || !course.trim() || cleanPlayers.length < 2 || gameTypes.length === 0 || !parsAreValid || !pointValuesAreValid) {
-      setFormError('Add the round details, valid point values, and a par from 3–6 for every hole.');
+    if (!name.trim() || !course.trim() || cleanPlayers.length < 2 || gameTypes.length === 0 || !parsAreValid || !strokeIndexesAreValid || !pointValuesAreValid) {
+      setFormError('Add all round details, valid points, pars (3-6), and stroke indexes (1-18).');
       return;
     }
     setFormError('');
@@ -422,6 +454,7 @@ function NewRound() {
             threeputt: Number(dotPoints.threeputt),
           },
           holePars: holePars.map(Number),
+          holeStrokeIndex: holeStrokeIndexes.map(Number),
           players: cleanPlayers.map((player) => ({
             name: player.name.trim(),
             handicap: player.handicap.trim() ? Number(player.handicap) : 0,
@@ -458,7 +491,22 @@ function NewRound() {
           </div>
           <div className="field">
             <label htmlFor="course-name">Course</label>
-            <input id="course-name" value={course} onChange={(event) => setCourse(event.target.value)} placeholder="e.g. Presidio Golf Course" data-testid="input-course" />
+            {coursesQuery.data && coursesQuery.data.length > 0 ? (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input id="course-name" style={{ flex: 1 }} value={course} onChange={(event) => setCourse(event.target.value)} placeholder="e.g. Presidio Golf Course" data-testid="input-course" />
+                <select 
+                  onChange={(e) => { if(e.target.value) applySavedCourse(Number(e.target.value)) }}
+                  style={{ width: '130px', flexShrink: 0, padding: '12px 13px', borderRadius: 9, border: '1px solid hsl(var(--input))', background: 'hsl(var(--card))' }}
+                  data-testid="select-saved-course"
+                  title="Load saved course"
+                >
+                  <option value="">Load saved...</option>
+                  {coursesQuery.data.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+            ) : (
+              <input id="course-name" value={course} onChange={(event) => setCourse(event.target.value)} placeholder="e.g. Presidio Golf Course" data-testid="input-course" />
+            )}
           </div>
           <div className="field">
             <label htmlFor="played-at">Date</label>
@@ -525,18 +573,40 @@ function NewRound() {
               <div className="setup-section-heading">
                 <div>
                   <div className="eyebrow">Course setup</div>
-                  <strong>Confirm the par for every hole</strong>
+                  <strong>Confirm par and stroke index</strong>
                 </div>
-                <span className="field-hint">Used to identify birdies, eagles, and greenies.</span>
+                <span className="field-hint">Used for dots and net scoring.</span>
               </div>
-              <div className="par-grid" data-testid="grid-hole-pars">
-                {holePars.map((par, index) => (
-                  <label className="compact-number" key={index} htmlFor={`hole-par-${index + 1}`}>
-                    <span>Hole {index + 1}</span>
-                    <input id={`hole-par-${index + 1}`} type="number" min="3" max="6" step="1" value={par} onChange={(event) => changeHolePar(index + 1, event.target.value)} data-testid={`input-hole-par-${index + 1}`} />
-                  </label>
-                ))}
+              <div style={{ overflowX: 'auto', paddingBottom: 10 }}>
+                <div style={{ display: 'flex', gap: 8, minWidth: 'max-content' }} data-testid="grid-hole-pars">
+                  {holePars.map((par, index) => (
+                    <div key={index} style={{ display: 'flex', flexDirection: 'column', gap: 6, width: 50 }}>
+                      <div style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'hsl(var(--muted-foreground))' }}>{index + 1}</div>
+                      <input 
+                        id={`hole-par-${index + 1}`}
+                        type="number" 
+                        min="3" max="6" step="1" 
+                        value={par} 
+                        onChange={(event) => changeHolePar(index + 1, event.target.value)} 
+                        title={`Hole ${index + 1} Par`} 
+                        data-testid={`input-hole-par-${index + 1}`}
+                        style={{ width: '100%', padding: '6px 4px', textAlign: 'center', fontSize: 13, fontWeight: 700, fontFamily: 'var(--app-font-mono)', borderRadius: 6, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))' }} 
+                      />
+                      <input 
+                        id={`hole-si-${index + 1}`}
+                        type="number" 
+                        min="1" max="18" step="1" 
+                        value={holeStrokeIndexes[index]} 
+                        onChange={(event) => changeHoleStrokeIndex(index + 1, event.target.value)} 
+                        title={`Hole ${index + 1} Stroke Index`} 
+                        data-testid={`input-hole-si-${index + 1}`}
+                        style={{ width: '100%', padding: '6px 4px', textAlign: 'center', fontSize: 11, color: 'hsl(var(--muted-foreground))', fontFamily: 'var(--app-font-mono)', borderRadius: 6, border: '1px solid hsl(var(--border))', background: 'transparent' }} 
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
+              <div className="field-hint" style={{ marginTop: 4 }}>Top: Par. Bottom: Stroke Index.</div>
             </div>
           </div>
           <div className="field full">
@@ -586,6 +656,7 @@ function RoundSetupEditor({ round, onClose, onSaved }: { round: Round; onClose: 
   const [snakeStake, setSnakeStake] = useState(String(round.snakeStake));
   const [dotPoints, setDotPoints] = useState<DotPoints>(round.dotPoints);
   const [holePars, setHolePars] = useState<string[]>(round.holePars.map(String));
+  const [holeStrokeIndexes, setHoleStrokeIndexes] = useState<string[]>((round.holeStrokeIndex || DEFAULT_HOLE_STROKE_INDEX).map(String));
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -593,17 +664,22 @@ function RoundSetupEditor({ round, onClose, onSaved }: { round: Round; onClose: 
     setSnakeStake(String(round.snakeStake));
     setDotPoints(round.dotPoints);
     setHolePars(round.holePars.map(String));
+    setHoleStrokeIndexes((round.holeStrokeIndex || DEFAULT_HOLE_STROKE_INDEX).map(String));
   }, [round]);
 
   const changeHolePar = (hole: number, value: string) => {
     setHolePars((current) => current.map((par, index) => (index === hole - 1 ? value : par)));
   };
+  const changeHoleStrokeIndex = (hole: number, value: string) => {
+    setHoleStrokeIndexes((current) => current.map((si, index) => (index === hole - 1 ? value : si)));
+  };
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const parsAreValid = holePars.length === 18 && holePars.every((par) => Number(par) >= 3 && Number(par) <= 6);
+    const strokeIndexesAreValid = holeStrokeIndexes.length === 18 && holeStrokeIndexes.every((si) => Number(si) >= 1 && Number(si) <= 18);
     const valuesAreValid = Number(wolfUnit) > 0 && Number(snakeStake) >= 0 && DOT_POINT_FIELDS.every(({ key }) => Number(dotPoints[key]) >= 0);
-    if (!parsAreValid || !valuesAreValid) {
-      setError('Use a Wolf value above 0, a Snake value of 0 or more, and pars from 3–6.');
+    if (!parsAreValid || !strokeIndexesAreValid || !valuesAreValid) {
+      setError('Use a Wolf value > 0, Snake value >= 0, pars 3-6, and stroke indexes 1-18.');
       return;
     }
     setError('');
@@ -612,6 +688,7 @@ function RoundSetupEditor({ round, onClose, onSaved }: { round: Round; onClose: 
       snakeStake: Number(snakeStake),
       dotPoints,
       holePars: holePars.map(Number),
+      holeStrokeIndex: holeStrokeIndexes.map(Number),
     };
     updateRound.mutate(
       { roundId: round.id, data },
@@ -659,15 +736,35 @@ function RoundSetupEditor({ round, onClose, onSaved }: { round: Round; onClose: 
         </div>
       </div>
       <div className="field">
-        <label>Hole pars</label>
-        <div className="par-grid" data-testid="grid-edit-hole-pars">
-          {holePars.map((par, index) => (
-            <label className="compact-number" key={index} htmlFor={`edit-hole-par-${index + 1}`}>
-              <span>Hole {index + 1}</span>
-              <input id={`edit-hole-par-${index + 1}`} type="number" min="3" max="6" step="1" value={par} onChange={(event) => changeHolePar(index + 1, event.target.value)} data-testid={`input-edit-hole-par-${index + 1}`} />
-            </label>
-          ))}
+        <label>Course setup</label>
+        <div style={{ overflowX: 'auto', paddingBottom: 10 }}>
+          <div style={{ display: 'flex', gap: 8, minWidth: 'max-content' }} data-testid="grid-edit-hole-pars">
+            {holePars.map((par, index) => (
+              <div key={index} style={{ display: 'flex', flexDirection: 'column', gap: 6, width: 50 }}>
+                <div style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'hsl(var(--muted-foreground))' }}>{index + 1}</div>
+                <input 
+                  id={`edit-hole-par-${index + 1}`}
+                  type="number" min="3" max="6" step="1" 
+                  value={par} 
+                  onChange={(event) => changeHolePar(index + 1, event.target.value)} 
+                  title={`Hole ${index + 1} Par`}
+                  data-testid={`input-edit-hole-par-${index + 1}`}
+                  style={{ width: '100%', padding: '6px 4px', textAlign: 'center', fontSize: 13, fontWeight: 700, fontFamily: 'var(--app-font-mono)', borderRadius: 6, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))' }} 
+                />
+                <input 
+                  id={`edit-hole-si-${index + 1}`}
+                  type="number" min="1" max="18" step="1" 
+                  value={holeStrokeIndexes[index]} 
+                  onChange={(event) => changeHoleStrokeIndex(index + 1, event.target.value)} 
+                  title={`Hole ${index + 1} Stroke Index`}
+                  data-testid={`input-edit-hole-si-${index + 1}`}
+                  style={{ width: '100%', padding: '6px 4px', textAlign: 'center', fontSize: 11, color: 'hsl(var(--muted-foreground))', fontFamily: 'var(--app-font-mono)', borderRadius: 6, border: '1px solid hsl(var(--border))', background: 'transparent' }} 
+                />
+              </div>
+            ))}
+          </div>
         </div>
+        <div className="field-hint">Top: Par. Bottom: Stroke Index.</div>
       </div>
       {error ? <div className="error-state" style={{ padding: 11, textAlign: 'left', fontSize: 12 }} data-testid="text-settings-error">{error}</div> : null}
       <div className="form-footer">
@@ -1217,6 +1314,7 @@ function Router() {
       <ErrorBoundary resetKey={location}>
         <Switch>
           <Route path="/" component={Dashboard} />
+          <Route path="/courses" component={Courses} />
           <Route path="/rounds/new" component={NewRound} />
           <Route path="/rounds/:id" component={Scorecard} />
           <Route component={NotFound} />

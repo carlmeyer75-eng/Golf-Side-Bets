@@ -14,6 +14,8 @@ tags:
     description: Golf round and side bet operations
   - name: dashboard
     description: Round summaries
+  - name: courses
+    description: Reusable golf course layouts
 paths:
   /healthz:
     get:
@@ -164,10 +166,136 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DashboardSummary"
+  /courses:
+    get:
+      operationId: listCourses
+      tags: [courses]
+      summary: List saved golf courses
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Saved courses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Course"
+    post:
+      operationId: createCourse
+      tags: [courses]
+      summary: Save a golf course layout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CourseInput"
+      responses:
+        "201":
+          description: Saved course
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Course"
+  /courses/{courseId}:
+    get:
+      operationId: getCourse
+      tags: [courses]
+      summary: Get a saved golf course
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+      responses:
+        "200":
+          description: Saved course
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Course"
+        "404":
+          description: Course not found
+    patch:
+      operationId: updateCourse
+      tags: [courses]
+      summary: Update a saved golf course
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CourseUpdate"
+      responses:
+        "200":
+          description: Updated course
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Course"
+        "404":
+          description: Course not found
+    delete:
+      operationId: deleteCourse
+      tags: [courses]
+      summary: Delete a saved golf course
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+      responses:
+        "204":
+          description: Course deleted
+  /courses/import-scorecard:
+    post:
+      operationId: importScorecard
+      tags: [courses]
+      summary: Extract a course layout from a scorecard image or PDF
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScorecardImportInput"
+      responses:
+        "200":
+          description: Editable extracted course draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourseImportDraft"
+  /courses/external-search:
+    get:
+      operationId: searchExternalCourses
+      tags: [courses]
+      summary: Search an external golf-course provider
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+      responses:
+        "200":
+          description: External search status and results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExternalCourseSearchResponse"
 components:
   parameters:
     RoundId:
       name: roundId
+      in: path
+      required: true
+      schema:
+        type: number
+    CourseId:
+      name: courseId
       in: path
       required: true
       schema:
@@ -615,3 +743,144 @@ components:
             - $ref: "#/components/schemas/Round"
             - type: "null"
       required: [totalRounds, activeRounds, totalHolesRecorded, latestRound]
+    CourseHole:
+      type: object
+      properties:
+        hole:
+          type: number
+          minimum: 1
+          maximum: 18
+        par:
+          type: number
+          minimum: 3
+          maximum: 6
+        strokeIndex:
+          type: number
+          minimum: 1
+          maximum: 18
+      required: [hole, par, strokeIndex]
+    Course:
+      type: object
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+        location:
+          type: string
+        holes:
+          type: array
+          minItems: 18
+          maxItems: 18
+          items:
+            $ref: "#/components/schemas/CourseHole"
+        source:
+          type: string
+          enum: [manual, upload, external]
+        sourceDocumentName:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required: [id, name, location, holes, source, sourceDocumentName, createdAt, updatedAt]
+    CourseInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        location:
+          type: string
+        holes:
+          type: array
+          minItems: 18
+          maxItems: 18
+          items:
+            $ref: "#/components/schemas/CourseHole"
+        source:
+          type: string
+          enum: [manual, upload, external]
+        sourceDocumentName:
+          type: ["string", "null"]
+      required: [name, holes]
+    CourseUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        location:
+          type: string
+        holes:
+          type: array
+          minItems: 18
+          maxItems: 18
+          items:
+            $ref: "#/components/schemas/CourseHole"
+    ScorecardImportInput:
+      type: object
+      properties:
+        fileName:
+          type: string
+          minLength: 1
+        mimeType:
+          type: string
+          enum: [application/pdf, image/jpeg, image/png, image/webp]
+        data:
+          type: string
+          minLength: 1
+      required: [fileName, mimeType, data]
+    CourseImportDraft:
+      type: object
+      properties:
+        name:
+          type: string
+        location:
+          type: string
+        holes:
+          type: array
+          minItems: 18
+          maxItems: 18
+          items:
+            $ref: "#/components/schemas/CourseHole"
+        source:
+          type: string
+          enum: [upload]
+        sourceDocumentName:
+          type: string
+        warnings:
+          type: array
+          items:
+            type: string
+        confidence:
+          type: ["number", "null"]
+      required: [name, location, holes, source, sourceDocumentName, warnings, confidence]
+    ExternalCourse:
+      type: object
+      properties:
+        externalId:
+          type: string
+        name:
+          type: string
+        location:
+          type: string
+        holes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CourseHole"
+      required: [externalId, name, location, holes]
+    ExternalCourseSearchResponse:
+      type: object
+      properties:
+        available:
+          type: boolean
+        provider:
+          type: ["string", "null"]
+        message:
+          type: string
+        courses:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExternalCourse"
+      required: [available, provider, message, courses]
