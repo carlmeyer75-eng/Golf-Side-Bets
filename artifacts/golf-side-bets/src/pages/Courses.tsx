@@ -274,9 +274,17 @@ export default function Courses() {
           </p>
         </div>
         {view !== 'list' ? (
-          <button className="button button-quiet" onClick={() => setView('list')}>
-            <ArrowLeft size={15} /> Back to library
-          </button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {view === 'create' && (
+              <button className="button button-secondary" onClick={() => fileInputRef.current?.click()} disabled={importScorecard.isPending} data-testid="button-import-scorecard-create">
+                {importScorecard.isPending ? <LoaderCircle className="spin" size={16} /> : <Upload size={16} />}
+                Import scorecard
+              </button>
+            )}
+            <button className="button button-quiet" onClick={() => setView('list')}>
+              <ArrowLeft size={15} /> Back to library
+            </button>
+          </div>
         ) : (
           <div style={{ display: 'flex', gap: 10 }}>
             <button className="button button-secondary" onClick={() => fileInputRef.current?.click()} disabled={importScorecard.isPending}>
@@ -307,10 +315,13 @@ export default function Courses() {
                 {externalSearch.isFetching ? <LoaderCircle className="spin" size={15} /> : <Search size={15} />} Search
               </button>
             </form>
+            <p className="field-hint" style={{ margin: '10px 0 0' }}>
+              Search OpenGolfAPI for courses with a complete 18-hole par and handicap layout. You’ll review every value before saving.
+            </p>
             
             {externalSearch.isError && (
               <div className="error-state" style={{ marginTop: 15, padding: 12, textAlign: 'left', fontSize: 13 }}>
-                External course search is currently unavailable.
+                The course directory is currently unavailable. You can still add a course manually or import a scorecard below.
               </div>
             )}
             
@@ -324,13 +335,16 @@ export default function Courses() {
                 {externalSearch.data.courses.length > 0 ? (
                   <div style={{ display: 'grid', gap: 10, marginTop: 15 }}>
                     {externalSearch.data.courses.map(course => (
-                      <div key={course.externalId} className="card course-card" style={{ padding: 15, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div key={course.externalId} className="card course-card" style={{ padding: 15, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
                         <div>
                           <div style={{ fontWeight: 700 }}>{course.name}</div>
                           <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}><MapPin size={12} style={{ display: 'inline', marginRight: 4 }}/>{course.location}</div>
+                          <div style={{ fontSize: 11, color: 'hsl(var(--primary))', marginTop: 7, fontFamily: 'var(--app-font-mono)' }}>
+                            {course.holes.length}/18 holes · par {course.holes.reduce((total, hole) => total + hole.par, 0)} · complete layout
+                          </div>
                         </div>
-                        <button className="button button-quiet" onClick={() => { setDraftCourse({...course, source: 'external'}); setView('import-review'); }}>
-                          Select
+                        <button className="button button-quiet" data-testid={`button-review-external-${course.externalId}`} onClick={() => { setDraftCourse({...course, source: 'external'}); setView('import-review'); }}>
+                          <Edit2 size={14} /> Review layout
                         </button>
                       </div>
                     ))}
@@ -342,7 +356,10 @@ export default function Courses() {
             )}
           </div>
           
-          <h2 className="section-title" style={{ fontSize: 18, marginBottom: 12 }}>Or add manually</h2>
+           <h2 className="section-title" style={{ fontSize: 18, marginBottom: 12 }}>Or add manually</h2>
+           <p className="body-copy" style={{ margin: '-3px 0 14px', fontSize: 13 }}>
+             Manual entry and scorecard import remain available if a directory result is missing or incomplete.
+           </p>
           <CourseForm onSave={handleSaveCreate} onCancel={() => setView('list')} />
         </>
       )}

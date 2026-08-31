@@ -100,13 +100,26 @@ router.get("/courses/external-search", async (req, res) => {
     });
   }
 
-  const courses = await courseProvider.search(query.trim());
-  return res.json({
-    available: true,
-    provider: courseProvider.name,
-    message: courses.length ? "Courses found." : "No matching courses were found.",
-    courses,
-  });
+  try {
+    const courses = await courseProvider.search(query.trim());
+    return res.json({
+      available: true,
+      provider: courseProvider.name,
+      message: courses.length
+        ? "Courses found with complete 18-hole layouts."
+        : "No matching courses with complete 18-hole layouts were found.",
+      courses,
+    });
+  } catch (error) {
+    req.log.warn({ err: error, provider: courseProvider.name }, "External course search failed");
+    return res.json({
+      available: false,
+      provider: courseProvider.name,
+      message:
+        "The course directory is temporarily unavailable. You can still add a course manually or import a scorecard.",
+      courses: [],
+    });
+  }
 });
 
 router.post("/courses", async (req, res) => {

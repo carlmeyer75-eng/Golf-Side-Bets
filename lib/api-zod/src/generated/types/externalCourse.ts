@@ -11,5 +11,9 @@ export interface ExternalCourse {
   externalId: string;
   name: string;
   location: string;
+  /**
+     * @minItems 18
+     * @maxItems 18
+     */
   holes: CourseHole[];
 }

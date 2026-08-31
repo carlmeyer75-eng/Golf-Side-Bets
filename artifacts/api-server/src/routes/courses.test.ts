@@ -1,5 +1,5 @@
 import request from "supertest";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import app from "../app";
 
 const holes = Array.from({ length: 18 }, (_, index) => ({
@@ -64,13 +64,27 @@ describe("course library", () => {
     expect(updateResponse.body.name).toBe("Snapshot Test Club Updated");
   });
 
-  it("reports an unconfigured external provider without fake results", async () => {
-    const response = await request(app).get("/api/courses/external-search?query=pebble");
+  it("preserves fallback entry when the external provider is unavailable", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 503,
+        json: async () => ({ error: "unavailable" }),
+      })),
+    );
 
-    expect(response.status).toBe(200);
-    expect(response.body.available).toBe(false);
-    expect(response.body.provider).toBeNull();
-    expect(response.body.courses).toEqual([]);
+    try {
+      const response = await request(app).get("/api/courses/external-search?query=pebble");
+
+      expect(response.status).toBe(200);
+      expect(response.body.available).toBe(false);
+      expect(response.body.provider).toBe("OpenGolfAPI");
+      expect(response.body.message).toContain("manually or import a scorecard");
+      expect(response.body.courses).toEqual([]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("keeps a round layout snapshot after its saved course changes", async () => {

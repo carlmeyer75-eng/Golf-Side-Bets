@@ -867,6 +867,8 @@ components:
           type: string
         holes:
           type: array
+          minItems: 18
+          maxItems: 18
           items:
             $ref: "#/components/schemas/CourseHole"
       required: [externalId, name, location, holes]

@@ -1077,6 +1077,9 @@ export const searchExternalCoursesResponseCoursesItemHolesItemParMax = 6;
 
 export const searchExternalCoursesResponseCoursesItemHolesItemStrokeIndexMax = 18;
 
+export const searchExternalCoursesResponseCoursesItemHolesMin = 18;
+export const searchExternalCoursesResponseCoursesItemHolesMax = 18;
+
 
 
 export const SearchExternalCoursesResponse = zod.object({
@@ -1091,7 +1094,7 @@ export const SearchExternalCoursesResponse = zod.object({
   "hole": zod.number().min(1).max(searchExternalCoursesResponseCoursesItemHolesItemHoleMax),
   "par": zod.number().min(searchExternalCoursesResponseCoursesItemHolesItemParMin).max(searchExternalCoursesResponseCoursesItemHolesItemParMax),
   "strokeIndex": zod.number().min(1).max(searchExternalCoursesResponseCoursesItemHolesItemStrokeIndexMax)
-}))
+})).min(searchExternalCoursesResponseCoursesItemHolesMin).max(searchExternalCoursesResponseCoursesItemHolesMax)
 }))
 })
 
