@@ -63,6 +63,7 @@ export const holeResultsTable = pgTable("golf_hole_results", {
   wolfManualResult: text("wolf_manual_result"),
   dots: jsonb("dots").$type<DotFlags[]>().notNull().default([]),
   winnerPlayerId: text("winner_player_id"),
+  snakeHolderPlayerId: text("snake_holder_player_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

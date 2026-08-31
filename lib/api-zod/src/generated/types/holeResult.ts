@@ -20,5 +20,6 @@ export type HoleResult = HoleResultInput & ({
   wolfCarry: number;
   /** @nullable */
   snakeHolderPlayerId: string | null;
+  snakeTiePlayerIds: string[];
   dotsEarned: PlayerDots[];
 });

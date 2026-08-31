@@ -208,6 +208,8 @@ export interface HoleResultInput {
   dots?: DotFlagsInput[];
   /** @nullable */
   winnerPlayerId?: string | null;
+  /** @nullable */
+  snakeHolderPlayerId?: string | null;
 }
 
 export interface PlayerDots {
@@ -243,6 +245,7 @@ export type HoleResult = HoleResultInput & ({
   wolfCarry: number;
   /** @nullable */
   snakeHolderPlayerId: string | null;
+  snakeTiePlayerIds: string[];
   dotsEarned: PlayerDots[];
 });
 

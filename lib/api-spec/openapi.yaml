@@ -447,6 +447,8 @@ components:
             $ref: "#/components/schemas/DotFlagsInput"
         winnerPlayerId:
           type: ["string", "null"]
+        snakeHolderPlayerId:
+          type: ["string", "null"]
       required: [hole, scores]
     PlayerDots:
       type: object
@@ -488,6 +490,10 @@ components:
               type: number
             snakeHolderPlayerId:
               type: ["string", "null"]
+            snakeTiePlayerIds:
+              type: array
+              items:
+                type: string
             dotsEarned:
               type: array
               items:
@@ -501,6 +507,7 @@ components:
               wolfResult,
               wolfCarry,
               snakeHolderPlayerId,
+              snakeTiePlayerIds,
               dotsEarned,
             ]
     RoundDetail:

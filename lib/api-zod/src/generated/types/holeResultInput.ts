@@ -27,4 +27,6 @@ export interface HoleResultInput {
   dots?: DotFlagsInput[];
   /** @nullable */
   winnerPlayerId?: string | null;
+  /** @nullable */
+  snakeHolderPlayerId?: string | null;
 }

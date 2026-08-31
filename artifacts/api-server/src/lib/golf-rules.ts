@@ -32,6 +32,7 @@ export type HoleRow = {
   wolfManualResult: WolfManualResult | null;
   dots: DotFlags[];
   winnerPlayerId: string | null;
+  snakeHolderPlayerId: string | null;
 };
 
 export type RoundSettings = {
@@ -63,6 +64,7 @@ export type HoleComputed = {
   wolfResult: WolfManualResult | null;
   wolfCarry: number;
   snakeHolderPlayerId: string | null;
+  snakeTiePlayerIds: string[];
   dotsEarned: PlayerDotsResult[];
 };
 
@@ -175,6 +177,7 @@ export function computeRound(settings: RoundSettings, holes: HoleRow[]): RoundCo
     }
 
     // ---- Snake ----
+    let snakeTiePlayerIds: string[] = [];
     if (snakeEnabled) {
       const hitters: string[] = [];
       let maxPutts = 0;
@@ -190,8 +193,11 @@ export function computeRound(settings: RoundSettings, holes: HoleRow[]): RoundCo
       if (topHitters.length === 1) {
         snakeHolder = topHitters[0];
       } else if (topHitters.length > 1) {
-        if (!(snakeHolder && topHitters.includes(snakeHolder))) {
-          snakeHolder = topHitters.slice().sort((a, b) => playerIds.indexOf(a) - playerIds.indexOf(b))[0] ?? snakeHolder;
+        snakeTiePlayerIds = topHitters.slice().sort((a, b) => playerIds.indexOf(a) - playerIds.indexOf(b));
+        if (holeRow.snakeHolderPlayerId && topHitters.includes(holeRow.snakeHolderPlayerId)) {
+          snakeHolder = holeRow.snakeHolderPlayerId;
+        } else if (!(snakeHolder && topHitters.includes(snakeHolder))) {
+          snakeHolder = snakeTiePlayerIds[0] ?? snakeHolder;
         }
       }
     }
@@ -241,6 +247,7 @@ export function computeRound(settings: RoundSettings, holes: HoleRow[]): RoundCo
       wolfResult,
       wolfCarry: wolfCarryThisHole,
       snakeHolderPlayerId: snakeHolder,
+      snakeTiePlayerIds,
       dotsEarned,
     });
   }

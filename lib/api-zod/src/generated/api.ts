@@ -212,7 +212,8 @@ export const CreateRoundResponse = zod.object({
   "sandy": zod.boolean().optional(),
   "poley": zod.boolean().optional()
 })).optional(),
-  "winnerPlayerId": zod.string().nullish()
+  "winnerPlayerId": zod.string().nullish(),
+  "snakeHolderPlayerId": zod.string().nullable()
 }).and(zod.object({
   "id": zod.number(),
   "createdAt": zod.string(),
@@ -221,6 +222,7 @@ export const CreateRoundResponse = zod.object({
   "wolfResult": zod.union([zod.literal('wolfwin'),zod.literal('oppwin'),zod.literal('push'),zod.literal(null)]).nullable(),
   "wolfCarry": zod.number(),
   "snakeHolderPlayerId": zod.string().nullable(),
+  "snakeTiePlayerIds": zod.array(zod.string()),
   "dotsEarned": zod.array(zod.object({
   "playerId": zod.string(),
   "greenie": zod.boolean(),
@@ -336,7 +338,8 @@ export const GetRoundResponse = zod.object({
   "sandy": zod.boolean().optional(),
   "poley": zod.boolean().optional()
 })).optional(),
-  "winnerPlayerId": zod.string().nullish()
+  "winnerPlayerId": zod.string().nullish(),
+  "snakeHolderPlayerId": zod.string().nullable()
 }).and(zod.object({
   "id": zod.number(),
   "createdAt": zod.string(),
@@ -345,6 +348,7 @@ export const GetRoundResponse = zod.object({
   "wolfResult": zod.union([zod.literal('wolfwin'),zod.literal('oppwin'),zod.literal('push'),zod.literal(null)]).nullable(),
   "wolfCarry": zod.number(),
   "snakeHolderPlayerId": zod.string().nullable(),
+  "snakeTiePlayerIds": zod.array(zod.string()),
   "dotsEarned": zod.array(zod.object({
   "playerId": zod.string(),
   "greenie": zod.boolean(),
@@ -512,7 +516,8 @@ export const UpdateRoundResponse = zod.object({
   "sandy": zod.boolean().optional(),
   "poley": zod.boolean().optional()
 })).optional(),
-  "winnerPlayerId": zod.string().nullish()
+  "winnerPlayerId": zod.string().nullish(),
+  "snakeHolderPlayerId": zod.string().nullable()
 }).and(zod.object({
   "id": zod.number(),
   "createdAt": zod.string(),
@@ -521,6 +526,7 @@ export const UpdateRoundResponse = zod.object({
   "wolfResult": zod.union([zod.literal('wolfwin'),zod.literal('oppwin'),zod.literal('push'),zod.literal(null)]).nullable(),
   "wolfCarry": zod.number(),
   "snakeHolderPlayerId": zod.string().nullable(),
+  "snakeTiePlayerIds": zod.array(zod.string()),
   "dotsEarned": zod.array(zod.object({
   "playerId": zod.string(),
   "greenie": zod.boolean(),
@@ -604,7 +610,8 @@ export const RecordHoleBody = zod.object({
   "sandy": zod.boolean().optional(),
   "poley": zod.boolean().optional()
 })).optional(),
-  "winnerPlayerId": zod.string().nullish()
+  "winnerPlayerId": zod.string().nullish(),
+  "snakeHolderPlayerId": zod.string().nullish()
 })
 
 export const recordHoleResponseOneHoleMax = 18;
@@ -635,7 +642,8 @@ export const RecordHoleResponse = zod.object({
   "sandy": zod.boolean().optional(),
   "poley": zod.boolean().optional()
 })).optional(),
-  "winnerPlayerId": zod.string().nullish()
+  "winnerPlayerId": zod.string().nullish(),
+  "snakeHolderPlayerId": zod.string().nullable()
 }).and(zod.object({
   "id": zod.number(),
   "createdAt": zod.string(),
@@ -644,6 +652,7 @@ export const RecordHoleResponse = zod.object({
   "wolfResult": zod.union([zod.literal('wolfwin'),zod.literal('oppwin'),zod.literal('push'),zod.literal(null)]).nullable(),
   "wolfCarry": zod.number(),
   "snakeHolderPlayerId": zod.string().nullable(),
+  "snakeTiePlayerIds": zod.array(zod.string()),
   "dotsEarned": zod.array(zod.object({
   "playerId": zod.string(),
   "greenie": zod.boolean(),
@@ -691,7 +700,8 @@ export const ListHoleResultsResponseItem = zod.object({
   "sandy": zod.boolean().optional(),
   "poley": zod.boolean().optional()
 })).optional(),
-  "winnerPlayerId": zod.string().nullish()
+  "winnerPlayerId": zod.string().nullish(),
+  "snakeHolderPlayerId": zod.string().nullable()
 }).and(zod.object({
   "id": zod.number(),
   "createdAt": zod.string(),
@@ -700,6 +710,7 @@ export const ListHoleResultsResponseItem = zod.object({
   "wolfResult": zod.union([zod.literal('wolfwin'),zod.literal('oppwin'),zod.literal('push'),zod.literal(null)]).nullable(),
   "wolfCarry": zod.number(),
   "snakeHolderPlayerId": zod.string().nullable(),
+  "snakeTiePlayerIds": zod.array(zod.string()),
   "dotsEarned": zod.array(zod.object({
   "playerId": zod.string(),
   "greenie": zod.boolean(),

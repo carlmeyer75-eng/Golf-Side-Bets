@@ -97,6 +97,7 @@ function toHoleRow(hole: typeof holeResultsTable.$inferSelect): HoleRow {
     wolfManualResult: (hole.wolfManualResult as HoleRow["wolfManualResult"]) ?? null,
     dots: (hole.dots as HoleRow["dots"]) ?? [],
     winnerPlayerId: hole.winnerPlayerId ?? null,
+    snakeHolderPlayerId: hole.snakeHolderPlayerId ?? null,
   };
 }
 
@@ -118,6 +119,7 @@ function serializeHole(hole: typeof holeResultsTable.$inferSelect, computation: 
     wolfResult: computed?.wolfResult ?? null,
     wolfCarry: computed?.wolfCarry ?? 1,
     snakeHolderPlayerId: computed?.snakeHolderPlayerId ?? null,
+    snakeTiePlayerIds: computed?.snakeTiePlayerIds ?? [],
     dotsEarned: computed?.dotsEarned ?? [],
   };
 }
@@ -280,6 +282,9 @@ router.post("/rounds/:roundId/holes", async (req, res) => {
   if (body.winnerPlayerId && !validPlayerIds.has(body.winnerPlayerId)) {
     return res.status(400).json({ error: "Winner must belong to round players" });
   }
+  if (body.snakeHolderPlayerId && !validPlayerIds.has(body.snakeHolderPlayerId)) {
+    return res.status(400).json({ error: "Snake holder must belong to round players" });
+  }
   const existing = found.holes.find((hole) => hole.hole === body.hole);
   const values = {
     roundId,
@@ -291,6 +296,7 @@ router.post("/rounds/:roundId/holes", async (req, res) => {
     wolfManualResult: body.wolfManualResult ?? null,
     dots: body.dots ?? [],
     winnerPlayerId: body.winnerPlayerId ?? null,
+    snakeHolderPlayerId: body.snakeHolderPlayerId ?? null,
   };
   const [hole] = existing
     ? await db.update(holeResultsTable).set(values).where(eq(holeResultsTable.id, existing.id)).returning()

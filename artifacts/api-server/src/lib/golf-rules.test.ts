@@ -87,6 +87,7 @@ describe("computeRound — Wolf", () => {
         wolfManualResult: null,
         dots: [],
         winnerPlayerId: null,
+        snakeHolderPlayerId: null,
       },
     ];
     const computation = computeRound(settings, holes);
@@ -111,6 +112,7 @@ describe("computeRound — Wolf", () => {
       wolfManualResult: null,
       dots: [],
       winnerPlayerId: null,
+      snakeHolderPlayerId: null,
     };
     // Hole 2: rotation wolf is p2. p2 shoots best net by far -> wolf wins with carried multiplier.
     const decisiveHole: HoleRow = {
@@ -122,6 +124,7 @@ describe("computeRound — Wolf", () => {
       wolfManualResult: null,
       dots: [],
       winnerPlayerId: null,
+      snakeHolderPlayerId: null,
     };
     const computation = computeRound(settings, [pushHole, decisiveHole]);
     expect(computation.perHole.get(1)!.wolfResult).toBe("push");
@@ -158,6 +161,7 @@ describe("computeRound — Snake and Dots", () => {
         wolfManualResult: null,
         dots: [],
         winnerPlayerId: null,
+        snakeHolderPlayerId: null,
       },
     ];
     const computation = computeRound(settings, holes);
@@ -173,6 +177,56 @@ describe("computeRound — Snake and Dots", () => {
     assertZeroSum(computation, players);
   });
 
+  it("uses the host's persisted holder choice for a Snake tie", () => {
+    const players = makePlayers(3);
+    const computation = computeRound(settingsFor(players, ["snake"]), [
+      {
+        hole: 1,
+        scores: players.map((player) => ({ playerId: player.id, strokes: 4 })),
+        putts: [
+          { playerId: "p1", putts: 3 },
+          { playerId: "p2", putts: 3 },
+          { playerId: "p3", putts: 2 },
+        ],
+        wolfPartnerIds: [],
+        wolfOverridePlayerId: null,
+        wolfManualResult: null,
+        dots: [],
+        winnerPlayerId: null,
+        snakeHolderPlayerId: "p2",
+      },
+    ]);
+
+    expect(computation.perHole.get(1)?.snakeTiePlayerIds).toEqual(["p1", "p2"]);
+    expect(computation.snakeHolderPlayerId).toBe("p2");
+    expect(computation.pointTotals.find((player) => player.playerId === "p2")?.snakePoints).toBe(0);
+    expect(computation.pointTotals.find((player) => player.playerId === "p1")?.snakePoints).toBe(1);
+  });
+
+  it("keeps automatic Snake behavior on a non-tied hole", () => {
+    const players = makePlayers(3);
+    const computation = computeRound(settingsFor(players, ["snake"]), [
+      {
+        hole: 1,
+        scores: players.map((player) => ({ playerId: player.id, strokes: 4 })),
+        putts: [
+          { playerId: "p1", putts: 4 },
+          { playerId: "p2", putts: 3 },
+          { playerId: "p3", putts: 2 },
+        ],
+        wolfPartnerIds: [],
+        wolfOverridePlayerId: null,
+        wolfManualResult: null,
+        dots: [],
+        winnerPlayerId: null,
+        snakeHolderPlayerId: "p2",
+      },
+    ]);
+
+    expect(computation.perHole.get(1)?.snakeTiePlayerIds).toEqual([]);
+    expect(computation.snakeHolderPlayerId).toBe("p1");
+  });
+
   it("stays zero-sum across a mixed Wolf + Snake + Dots + Nassau round with 6 players", () => {
     const handicaps = [10, 5, 20, 0, 14, 27];
     const players = makePlayers(6, handicaps);
@@ -186,6 +240,7 @@ describe("computeRound — Snake and Dots", () => {
       wolfManualResult: null,
       dots: players.map((p, idx) => ({ playerId: p.id, greenie: false, sandy: idx === i % 6, poley: false })),
       winnerPlayerId: null,
+      snakeHolderPlayerId: null,
     }));
     const computation = computeRound(settings, holes);
     assertZeroSum(computation, players);

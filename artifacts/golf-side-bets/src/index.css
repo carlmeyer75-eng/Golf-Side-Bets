@@ -238,6 +238,10 @@ button { cursor: pointer; }
 .wolf-result-readout { font-size:12px; font-weight:700; padding:11px 13px; border-radius:9px; background:hsl(var(--accent)/.15); color:hsl(var(--foreground)); }
 .check-label.small { padding:8px 10px; font-size:12px; }
 .snake-holder { background:hsl(var(--secondary)/.6); border-radius:10px; padding:13px 15px; font-size:13px; font-weight:700; }
+.snake-tie { display:grid; grid-template-columns:minmax(0,1fr) minmax(190px,.8fr); gap:16px; align-items:start; border:1px solid hsl(var(--accent)/.45); background:hsl(var(--accent)/.1); border-radius:10px; padding:15px; }
+.snake-tie strong { font-size:14px; }
+.snake-tie p { margin:5px 0 0; color:hsl(var(--muted-foreground)); font-size:12px; line-height:1.5; }
+.snake-auto { border:1px solid hsl(var(--border)); border-radius:10px; padding:12px 14px; color:hsl(var(--muted-foreground)); font-size:12px; line-height:1.5; }
 .dot-grid { display:flex; flex-direction:column; gap:9px; }
 .dot-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:11px 13px; border:1px solid hsl(var(--border)); border-radius:10px; }
 .dot-row-name { font-weight:700; font-size:13px; flex:0 0 100px; }
@@ -291,5 +295,6 @@ button { cursor: pointer; }
   .hole-tabs { padding:12px; }
   .hole-editor { padding:18px; }
   .score-fields,.select-row { grid-template-columns:1fr 1fr; }
+  .snake-tie { grid-template-columns:1fr; }
   .mobile-only { display:inline-flex; }
 }

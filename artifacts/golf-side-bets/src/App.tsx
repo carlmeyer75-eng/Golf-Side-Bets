@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -501,6 +501,7 @@ function Scorecard() {
   const [wolfPartnerIds, setWolfPartnerIds] = useState<string[]>([]);
   const [wolfOverridePlayerId, setWolfOverridePlayerId] = useState('');
   const [wolfManualResult, setWolfManualResult] = useState<'' | 'wolfwin' | 'oppwin' | 'push'>('');
+  const [snakeHolderPlayerId, setSnakeHolderPlayerId] = useState('');
   const [dotFlags, setDotFlags] = useState<Record<string, DotState>>({});
   const [winnerPlayerId, setWinnerPlayerId] = useState('');
   const [editing, setEditing] = useState(false);
@@ -520,26 +521,29 @@ function Scorecard() {
     [holes, selectedHole],
   );
 
+  useEffect(() => {
+    const nextScores: Record<string, string> = {};
+    selectedResult?.scores.forEach((score) => { nextScores[score.playerId] = String(score.strokes); });
+    setScores(nextScores);
+    const nextPutts: Record<string, string> = {};
+    selectedResult?.putts?.forEach((putt) => { nextPutts[putt.playerId] = String(putt.putts); });
+    setPutts(nextPutts);
+    setWolfPartnerIds(selectedResult?.wolfPartnerIds ?? []);
+    setWolfOverridePlayerId(selectedResult?.wolfOverridePlayerId ?? '');
+    setWolfManualResult(selectedResult?.wolfManualResult ?? '');
+    setSnakeHolderPlayerId(selectedResult?.snakeHolderPlayerId ?? '');
+    const nextDots: Record<string, DotState> = {};
+    selectedResult?.dots?.forEach((dot) => { nextDots[dot.playerId] = { greenie: !!dot.greenie, sandy: !!dot.sandy, poley: !!dot.poley }; });
+    setDotFlags(nextDots);
+    setWinnerPlayerId(selectedResult?.winnerPlayerId ?? '');
+  }, [selectedHole, selectedResult]);
+
   const autoWolfPlayerId = players.length > 0 ? players[(selectedHole - 1) % players.length]?.id ?? '' : '';
   const effectiveWolfPlayerId = wolfOverridePlayerId || autoWolfPlayerId;
 
   const chooseHole = (hole: number) => {
     setSelectedHole(hole);
     setActiveSubTab('score');
-    const result = holes.find((item) => item.hole === hole);
-    const nextScores: Record<string, string> = {};
-    result?.scores.forEach((score) => { nextScores[score.playerId] = String(score.strokes); });
-    setScores(nextScores);
-    const nextPutts: Record<string, string> = {};
-    result?.putts?.forEach((putt) => { nextPutts[putt.playerId] = String(putt.putts); });
-    setPutts(nextPutts);
-    setWolfPartnerIds(result?.wolfPartnerIds ?? []);
-    setWolfOverridePlayerId(result?.wolfOverridePlayerId ?? '');
-    setWolfManualResult(result?.wolfManualResult ?? '');
-    const nextDots: Record<string, DotState> = {};
-    result?.dots?.forEach((dot) => { nextDots[dot.playerId] = { greenie: !!dot.greenie, sandy: !!dot.sandy, poley: !!dot.poley }; });
-    setDotFlags(nextDots);
-    setWinnerPlayerId(result?.winnerPlayerId ?? '');
   };
 
   const toggleWolfPartner = (playerId: string) => {
@@ -570,6 +574,7 @@ function Scorecard() {
           wolfPartnerIds: hasWolf ? wolfPartnerIds.filter((id) => id !== effectiveWolfPlayerId) : [],
           wolfOverridePlayerId: hasWolf ? (wolfOverridePlayerId || null) : null,
           wolfManualResult: hasWolf && wolfManualResult ? wolfManualResult : null,
+          snakeHolderPlayerId: hasSnake ? (snakeHolderPlayerId || null) : null,
           dots: hasDots
             ? players.map((player) => ({ playerId: player.id, ...(dotFlags[player.id] ?? { greenie: false, sandy: false, poley: false }) }))
             : [],
@@ -648,6 +653,10 @@ function Scorecard() {
   const wolfResultLabel: Record<string, string> = { wolfwin: 'Wolf team won', oppwin: 'Opponents won', push: 'Push' };
   const autoWolfName = players.find((p) => p.id === autoWolfPlayerId)?.name ?? '—';
   const snakeHolderName = players.find((p) => p.id === settlement?.snakeHolderPlayerId)?.name ?? null;
+  const snakeHoleHolderName = players.find((p) => p.id === selectedResult?.snakeHolderPlayerId)?.name ?? null;
+  const snakeTiePlayers = (selectedResult?.snakeTiePlayerIds ?? [])
+    .map((id) => players.find((player) => player.id === id))
+    .filter((player): player is Player => !!player);
 
   return (
     <main className="content-wrap">
@@ -801,7 +810,35 @@ function Scorecard() {
 
             {activeSubTab === 'snake' && hasSnake ? (
               <div className="snake-panel">
-                <p className="body-copy">Snake passes automatically to whoever 3-putts (4 for handicaps above 18) — enter putts on the Score &amp; putts tab.</p>
+                <p className="body-copy">Snake passes automatically to the qualifying player with the most putts. When that count is tied, the host chooses the holder.</p>
+                {snakeTiePlayers.length > 1 ? (
+                  <div className="snake-tie" data-testid="panel-snake-tie">
+                    <div>
+                      <strong>Snake tie on hole {selectedHole}</strong>
+                      <p>{snakeTiePlayers.map((player) => player.name).join(' and ')} tied with the highest qualifying putt count.</p>
+                    </div>
+                    <div className="field">
+                      <label htmlFor="snake-holder">Choose the holder</label>
+                      <select
+                        id="snake-holder"
+                        value={snakeHolderPlayerId}
+                        onChange={(event) => setSnakeHolderPlayerId(event.target.value)}
+                        data-testid="select-snake-holder"
+                      >
+                        {snakeTiePlayers.map((player) => (
+                          <option key={player.id} value={player.id}>{player.name}</option>
+                        ))}
+                      </select>
+                      <span className="field-hint">Save the hole again to update the ledger and settlement.</span>
+                    </div>
+                  </div>
+                ) : selectedResult ? (
+                  <div className="snake-auto" data-testid="text-snake-auto">
+                    No tie on this hole. {snakeHoleHolderName ? `${snakeHoleHolderName} holds the Snake after hole ${selectedHole}.` : 'Nobody qualified for the Snake.'}
+                  </div>
+                ) : (
+                  <div className="snake-auto">Record putts for this hole to check for a Snake tie.</div>
+                )}
                 <div className="snake-holder" data-testid="text-snake-holder">
                   Current holder: <strong>{snakeHolderName ?? 'Nobody yet'}</strong>
                 </div>
